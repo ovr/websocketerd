@@ -52,6 +52,17 @@ func (this *RedisHub) Listen() {
 	}
 }
 
+func (this *RedisHub) Unsubscribe(channel string, client *Client) {
+	err := this.pubSub.Unsubscribe(channel)
+	if err != nil {
+		log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
+	} else {
+		if _, ok := this.subscribes[channel]; ok {
+			delete(this.subscribes, channel)
+		}
+	}
+}
+
 func (this *RedisHub) Subscribe(channel string, client *Client) {
 	err := this.pubSub.Subscribe(channel)
 	if err != nil {
