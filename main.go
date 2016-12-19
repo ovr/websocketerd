@@ -70,7 +70,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 	server.clients[client] = true
 
 
-	server.redisHub.Subscribe("pubsub:user:" + tokenPayload.UserId.String());
+	server.redisHub.Subscribe("pubsub:user:" + tokenPayload.UserId.String(), client);
 
 	go client.writePump(server)
 	client.readPump();

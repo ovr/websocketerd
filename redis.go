@@ -9,6 +9,8 @@ import (
 type RedisHub struct {
 	connection *redis.Client
 	pubSub     *redis.PubSub
+
+	subscribes map[string]*Client;
 }
 
 const (
@@ -24,6 +26,7 @@ func NewRedisHub(client *redis.Client) *RedisHub {
 	hub := &RedisHub{
 		connection: client,
 		pubSub: pubSub,
+		subscribes: map[string]*Client{},
 	}
 
 	go hub.Listen();
@@ -38,6 +41,10 @@ func (this *RedisHub) Listen() {
 			log.Printf("Redis ReceiveMessage err: %s", err)
 		} else {
 			log.Print(message);
+
+			if client, ok := this.subscribes[message.Channel]; ok {
+				client.sendChannel <- []byte(message.Payload)
+			}
 		}
 
 		// Sleep until next iteration
@@ -49,5 +56,7 @@ func (this *RedisHub) Subscribe(channel string, client *Client) {
 	err := this.pubSub.Subscribe(channel)
 	if err != nil {
 		log.Printf("Redis subscribe to %s err: %s", channel, err)
+	} else {
+		this.subscribes[channel] = client;
 	}
 }
