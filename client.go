@@ -17,6 +17,16 @@ type Client struct {
 	tokenPayload TokenPayload
 }
 
+func NewClient(conn *websocket.Conn, tokenPayload TokenPayload) *Client {
+	client := &Client{
+		conn: conn,
+		sendChannel: make(chan []byte, 256),
+		tokenPayload: tokenPayload,
+	}
+
+	return client;
+}
+
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}

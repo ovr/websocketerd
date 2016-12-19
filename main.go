@@ -65,33 +65,12 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		return
 	}
 
-	client := &Client{
-		conn: conn,
-		sendChannel: make(chan []byte, 256),
-		tokenPayload: tokenPayload,
-	}
+	log.Print("[Event] New connection");
+	client := NewClient(conn, tokenPayload);
 	server.clients[client] = true
 
-	log.Print("New connection");
 
-	go func() {
-		pubsub, subscribeError := server.redis.Subscribe("pubsub:user:" + client.tokenPayload.UserId.String());
-		if subscribeError != nil {
-			panic(subscribeError);
-		}
-
-		for {
-			message, err := pubsub.ReceiveMessage();
-			if err != nil {
-				log.Print(err)
-			}
-
-			if message != nil {
-				client.sendChannel <- []byte(message.Payload)
-				log.Print(message);
-			}
-		}
-	}();
+	server.redisHub.Subscribe("pubsub:user:" + tokenPayload.UserId.String());
 
 	go client.writePump(server)
 	client.readPump();
@@ -103,6 +82,8 @@ type Server struct {
 	httpServer *http.Server
 
 	redis *redis.Client
+
+	redisHub *RedisHub
 
 	// Unregister requests from clients.
 	unregisterChannel chan *Client
@@ -147,6 +128,15 @@ func newServer(config *Configuration) *Server {
 				PoolSize: config.Redis.PoolSize,
 				MaxRetries: config.Redis.MaxRetries,
 			},
+		),
+		redisHub: NewRedisHub(
+			redis.NewClient(
+				&redis.Options{
+					Addr: config.Redis.Addr,
+					PoolSize: config.Redis.PoolSize,
+					MaxRetries: config.Redis.MaxRetries,
+				},
+			),
 		),
 		unregisterChannel: make(chan *Client, 1024),
 	};
