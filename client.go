@@ -56,11 +56,13 @@ func (this *Client) readPump() {
 	}
 }
 
-func (this *Client) writePump() {
+func (this *Client) writePump(server *Server) {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		this.conn.Close()
+
+		server.unregisterChannel <- this
 	}()
 
 	for {

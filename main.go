@@ -93,7 +93,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		}
 	}();
 
-	go client.writePump()
+	go client.writePump(server)
 	client.readPump();
 }
 
@@ -103,6 +103,9 @@ type Server struct {
 	httpServer *http.Server
 
 	redis *redis.Client
+
+	// Unregister requests from clients.
+	unregisterChannel chan *Client
 }
 
 func (this *Server) Run()  {
@@ -110,6 +113,22 @@ func (this *Server) Run()  {
 	if err != nil {
 		log.Fatal("Cannot start HTTP Server", err);
 		panic(err)
+	}
+}
+
+func (this *Server) RunHub() {
+	for {
+		select {
+		case client := <- this.unregisterChannel:
+			log.Print("[Event] Connection closed");
+
+			if _, ok := this.clients[client]; ok {
+				log.Print("Client Removed");
+
+				delete(this.clients, client)
+				close(client.sendChannel)
+			}
+		}
 	}
 }
 
@@ -129,11 +148,14 @@ func newServer(config *Configuration) *Server {
 				MaxRetries: config.Redis.MaxRetries,
 			},
 		),
+		unregisterChannel: make(chan *Client, 1024),
 	};
 
 	server.httpServer.Handler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
 		serveWs(config, server, w, r)
 	})
+
+	go server.RunHub();
 
 	return server
 }
