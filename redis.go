@@ -6,11 +6,14 @@ import (
 	"log"
 )
 
+type ClientsMap map[*Client]bool
+type ChannelsMapToClientsMap map[string]ClientsMap
+
 type RedisHub struct {
 	connection *redis.Client
 	pubSub     *redis.PubSub
 
-	subscribes map[string]*Client;
+	channelsToClients ChannelsMapToClientsMap
 }
 
 const (
@@ -26,7 +29,7 @@ func NewRedisHub(client *redis.Client) *RedisHub {
 	hub := &RedisHub{
 		connection: client,
 		pubSub: pubSub,
-		subscribes: map[string]*Client{},
+		channelsToClients: ChannelsMapToClientsMap{},
 	}
 
 	go hub.Listen();
@@ -42,8 +45,10 @@ func (this *RedisHub) Listen() {
 		} else {
 			log.Print(message);
 
-			if client, ok := this.subscribes[message.Channel]; ok {
-				client.sendChannel <- []byte(message.Payload)
+			if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
+				for client := range clientsMap {
+					client.sendChannel <- []byte(message.Payload)
+				}
 			}
 		}
 
@@ -52,15 +57,19 @@ func (this *RedisHub) Listen() {
 	}
 }
 
-func (this *RedisHub) Unsubscribe(channel string, client *Client) {
-	err := this.pubSub.Unsubscribe(channel)
-	if err != nil {
-		log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
-	} else {
-		if _, ok := this.subscribes[channel]; ok {
-			delete(this.subscribes, channel)
+func (this *RedisHub) Unsubscribe(client *Client) {
+	// @todo Yet another map for fast delete client!
+	for _, clients := range this.channelsToClients {
+		if _, ok := clients[client]; ok {
+			delete(clients, client)
 		}
 	}
+
+	// @todo Think about channel that will unsubscribe with delay
+	/**err := this.pubSub.Unsubscribe(channel)
+	if err != nil {
+		log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
+	}*/
 }
 
 func (this *RedisHub) Subscribe(channel string, client *Client) {
@@ -68,6 +77,13 @@ func (this *RedisHub) Subscribe(channel string, client *Client) {
 	if err != nil {
 		log.Printf("Redis subscribe to %s err: %s", channel, err)
 	} else {
-		this.subscribes[channel] = client;
+		if channelClients, ok := this.channelsToClients[channel]; ok {
+			channelClients[client] = true;
+		} else {
+			clients := ClientsMap{};
+			clients[client] = true;
+
+			this.channelsToClients[channel] = clients;
+		}
 	}
 }

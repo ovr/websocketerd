@@ -106,7 +106,7 @@ func (this *Server) RunHub() {
 			if _, ok := this.clients[client]; ok {
 				log.Print("Client Removed");
 
-				this.redisHub.Unsubscribe("pubsub:user:" + client.tokenPayload.UserId.String(), client)
+				this.redisHub.Unsubscribe(client)
 				delete(this.clients, client)
 				close(client.sendChannel)
 			}
