@@ -84,6 +84,8 @@ func (this *RedisHub) Unsubscribe(client *Client) {
 					if err != nil {
 						log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
 					}
+
+					delete(this.channelsToClients, channel);
 				}
 			}
 		}
