@@ -65,21 +65,21 @@ func (this *RedisHub) Listen() {
 
 func (this *RedisHub) Unsubscribe(client *Client) {
 	this.channelsToClientsLock.Lock();
+	defer this.channelsToClientsLock.Unlock();
 
 	// @todo Yet another map for fast delete client!
-	for _, clients := range this.channelsToClients {
+	for channel, clients := range this.channelsToClients {
 		if _, ok := clients[client]; ok {
 			delete(clients, client)
 		}
+
+		if len(clients) == 0 {
+			err := this.pubSub.Unsubscribe(channel)
+			if err != nil {
+				log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
+			}
+		}
 	}
-
-	this.channelsToClientsLock.Unlock();
-
-	// @todo Think about channel that will unsubscribe with delay
-	/**err := this.pubSub.Unsubscribe(channel)
-	if err != nil {
-		log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
-	}*/
 }
 
 func (this *RedisHub) Subscribe(channel string, client *Client) {
