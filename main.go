@@ -9,6 +9,7 @@ import (
 	"gopkg.in/redis.v5"
 	"encoding/json"
 	"runtime"
+	"flag"
 )
 
 var upgrader = websocket.Upgrader{
@@ -239,8 +240,14 @@ func newServer(config *Configuration) *Server {
 }
 
 func main() {
+	var (
+		configFile    string
+	)
+
+	flag.StringVar(&configFile, "config", "./config.json", "Config filepath")
+
 	configuration := &Configuration{};
-	configuration.Init("./config.json");
+	configuration.Init(configFile);
 
 	server := newServer(configuration);
 	server.Run()
