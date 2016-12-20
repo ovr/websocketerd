@@ -8,6 +8,7 @@ import (
 	"time"
 	"gopkg.in/redis.v5"
 	"encoding/json"
+	"runtime"
 )
 
 var upgrader = websocket.Upgrader{
@@ -114,6 +115,24 @@ func (this *Server) RunHub() {
 	}
 }
 
+func (this *Server) Stats() JSONMap {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+
+	return JSONMap{
+		"connections": len(this.clients),
+		"memory": JSONMap{
+			"alloc": mem.Alloc,
+			"total-alloc": mem.TotalAlloc,
+			"heap-alloc": mem.HeapAlloc,
+			"heap-sys": mem.HeapSys,
+		},
+		"pubsub": JSONMap{
+			"pubsub": len(this.redisHub.channelsToClients),
+		},
+	};
+}
+
 func newServer(config *Configuration) *Server {
 	server := &Server{
 		clients: map[*Client]bool{},
@@ -143,7 +162,12 @@ func newServer(config *Configuration) *Server {
 	};
 
 	server.httpServer.Handler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
-		serveWs(config, server, w, r)
+		if (r.URL.Path == "/v1/ws/stats") {
+			data, _ := json.Marshal(server.Stats());
+			w.Write(data);
+		} else {
+			serveWs(config, server, w, r)
+		}
 	})
 
 	go server.RunHub();
