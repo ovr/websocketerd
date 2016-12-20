@@ -134,6 +134,45 @@ func (this *Server) Stats() JSONMap {
 	};
 }
 
+func (this *Server) Clients() []JSONMap {
+	clients := []JSONMap{}
+
+	for client := range this.clients {
+		clientMap := JSONMap{
+			"uid": client.tokenPayload.UserId,
+			"jti": client.tokenPayload.TokenId,
+		};
+
+		if channels, ok := this.redisHub.clientsToChannels[client]; ok {
+			clientMap["channels"] = channels;
+		}
+
+		clients = append(
+			clients,
+			clientMap,
+		);
+	}
+
+	return clients
+}
+
+func (this *Server) PubSubChannels() []JSONMap {
+	channels := []JSONMap{}
+
+	for channel := range this.redisHub.channelsToClients {
+		channelMap := JSONMap{
+			"channel": channel,
+		};
+
+		channels = append(
+			channels,
+			channelMap,
+		);
+	}
+
+	return channels
+}
+
 func newServer(config *Configuration) *Server {
 	server := &Server{
 		clients: map[*Client]bool{},
@@ -163,11 +202,34 @@ func newServer(config *Configuration) *Server {
 	};
 
 	server.httpServer.Handler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
-		if (r.URL.Path == "/v1/ws/stats") {
-			data, _ := json.Marshal(server.Stats());
-			w.Write(data);
-		} else {
+		switch r.URL.Path {
+		case "/v1/ws/stats":
+			data, err := json.Marshal(server.Stats());
+			if err != nil {
+				log.Print(err)
+			} else {
+				w.Write(data);
+			}
+			break
+		case "/v1/ws/clients":
+			data, err := json.Marshal(server.Clients());
+			if err != nil {
+				log.Print(err)
+			} else {
+				w.Write(data);
+			}
+			break
+		case "/v1/ws/pubsub":
+			data, err := json.Marshal(server.PubSubChannels());
+			if err != nil {
+				log.Print(err)
+			} else {
+				w.Write(data);
+			}
+			break
+		default:
 			serveWs(config, server, w, r)
+			break
 		}
 	})
 
