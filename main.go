@@ -128,7 +128,8 @@ func (this *Server) Stats() JSONMap {
 			"heap-sys": mem.HeapSys,
 		},
 		"pubsub": JSONMap{
-			"pubsub": len(this.redisHub.channelsToClients),
+			"channels": len(this.redisHub.channelsToClients),
+			"clients": len(this.redisHub.clientsToChannels),
 		},
 	};
 }

@@ -10,12 +10,18 @@ import (
 type ClientsMap map[*Client]bool
 type ChannelsMapToClientsMap map[string]ClientsMap
 
+type ChannelsMap map[string]bool
+type ClientsToChannelsMap map[*Client]ChannelsMap
+
 type RedisHub struct {
 	connection *redis.Client
 	pubSub     *redis.PubSub
 
 	channelsToClients ChannelsMapToClientsMap
 	channelsToClientsLock sync.Mutex
+
+	clientsToChannels ClientsToChannelsMap
+	clientsToChannelsLock sync.Mutex
 }
 
 const (
@@ -32,6 +38,7 @@ func NewRedisHub(client *redis.Client) *RedisHub {
 		connection: client,
 		pubSub: pubSub,
 		channelsToClients: ChannelsMapToClientsMap{},
+		clientsToChannels: ClientsToChannelsMap{},
 	}
 
 	go hub.Listen();
@@ -67,18 +74,23 @@ func (this *RedisHub) Unsubscribe(client *Client) {
 	this.channelsToClientsLock.Lock();
 	defer this.channelsToClientsLock.Unlock();
 
-	// @todo Yet another map for fast delete client!
-	for channel, clients := range this.channelsToClients {
-		if _, ok := clients[client]; ok {
-			delete(clients, client)
-		}
+	if channels, ok := this.clientsToChannels[client]; ok {
+		for channel := range channels {
+			if _, ok := this.channelsToClients[channel]; ok {
+				delete(this.channelsToClients[channel], client);
 
-		if len(clients) == 0 {
-			err := this.pubSub.Unsubscribe(channel)
-			if err != nil {
-				log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
+				if (len(this.channelsToClients[channel]) == 0) {
+					err := this.pubSub.Unsubscribe(channel)
+					if err != nil {
+						log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
+					}
+				}
 			}
 		}
+
+		delete(this.clientsToChannels, client);
+	} else {
+		log.Print("Cannot find a client from clientsToChannels map");
 	}
 }
 
@@ -99,5 +111,19 @@ func (this *RedisHub) Subscribe(channel string, client *Client) {
 		}
 
 		this.channelsToClientsLock.Unlock();
+
+
+		this.clientsToChannelsLock.Lock();
+
+		if clientChannels, ok := this.clientsToChannels[client]; ok {
+			clientChannels[channel] = true;
+		} else {
+			channels := ChannelsMap{};
+			channels[channel] = true;
+
+			this.clientsToChannels[client] = channels;
+		}
+
+		this.clientsToChannelsLock.Unlock();
 	}
 }
