@@ -4,6 +4,7 @@ import (
 	"gopkg.in/redis.v5"
 	"time"
 	"log"
+	"sync"
 )
 
 type ClientsMap map[*Client]bool
@@ -14,6 +15,7 @@ type RedisHub struct {
 	pubSub     *redis.PubSub
 
 	channelsToClients ChannelsMapToClientsMap
+	channelsToClientsLock sync.Mutex
 }
 
 const (
@@ -45,11 +47,15 @@ func (this *RedisHub) Listen() {
 		} else {
 			log.Print(message);
 
+			this.channelsToClientsLock.Lock();
+
 			if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
 				for client := range clientsMap {
 					client.sendChannel <- []byte(message.Payload)
 				}
 			}
+
+			this.channelsToClientsLock.Unlock();
 		}
 
 		// Sleep until next iteration
@@ -58,12 +64,16 @@ func (this *RedisHub) Listen() {
 }
 
 func (this *RedisHub) Unsubscribe(client *Client) {
+	this.channelsToClientsLock.Lock();
+
 	// @todo Yet another map for fast delete client!
 	for _, clients := range this.channelsToClients {
 		if _, ok := clients[client]; ok {
 			delete(clients, client)
 		}
 	}
+
+	this.channelsToClientsLock.Unlock();
 
 	// @todo Think about channel that will unsubscribe with delay
 	/**err := this.pubSub.Unsubscribe(channel)
@@ -77,6 +87,8 @@ func (this *RedisHub) Subscribe(channel string, client *Client) {
 	if err != nil {
 		log.Printf("Redis subscribe to %s err: %s", channel, err)
 	} else {
+		this.channelsToClientsLock.Lock();
+
 		if channelClients, ok := this.channelsToClients[channel]; ok {
 			channelClients[client] = true;
 		} else {
@@ -85,5 +97,7 @@ func (this *RedisHub) Subscribe(channel string, client *Client) {
 
 			this.channelsToClients[channel] = clients;
 		}
+
+		this.channelsToClientsLock.Unlock();
 	}
 }
