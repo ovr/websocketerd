@@ -3,6 +3,9 @@ WebSocketErD
 
 > WebSocket server with client broadcast from Redis pub/sub
 
+# How it works?
+
+![GitHub Logo](/docs/diagram.jpg)
 
 # LICENSE
 
