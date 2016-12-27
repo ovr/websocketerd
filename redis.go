@@ -25,7 +25,7 @@ type RedisHub struct {
 }
 
 const (
-	redisSleep          time.Duration = 1 * time.Second
+	redisSleep          time.Duration = 125 * time.Millisecond
 )
 
 func NewRedisHub(client *redis.Client) *RedisHub {
