@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
 	"time"
@@ -67,8 +69,11 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		return
 	}
 
+	var user *User = new(User)
+	server.db.First(user, tokenPayload.UserId.String())
+
 	log.Print("[Event] New connection");
-	client := NewClient(conn, tokenPayload);
+	client := NewClient(conn, tokenPayload, user);
 	server.clients[client] = true
 
 
@@ -86,6 +91,8 @@ type Server struct {
 	redis *redis.Client
 
 	redisHub *RedisHub
+
+	db *gorm.DB
 
 	// Unregister requests from clients.
 	unregisterChannel chan *Client
@@ -175,6 +182,11 @@ func (this *Server) PubSubChannels() []JSONMap {
 }
 
 func newServer(config *Configuration) *Server {
+	db, err := gorm.Open(config.DB.Dialect, config.DB.Uri)
+	if err != nil {
+		panic(err)
+	}
+
 	server := &Server{
 		clients: map[*Client]bool{},
 		httpServer: &http.Server{
@@ -199,6 +211,7 @@ func newServer(config *Configuration) *Server {
 				},
 			),
 		),
+		db: db,
 		unregisterChannel: make(chan *Client, 1024),
 	};
 

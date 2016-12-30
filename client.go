@@ -15,13 +15,16 @@ type Client struct {
 	sendChannel chan []byte
 
 	tokenPayload TokenPayload
+
+	user *User
 }
 
-func NewClient(conn *websocket.Conn, tokenPayload TokenPayload) *Client {
+func NewClient(conn *websocket.Conn, tokenPayload TokenPayload, user *User) *Client {
 	client := &Client{
 		conn: conn,
 		sendChannel: make(chan []byte, 256),
 		tokenPayload: tokenPayload,
+		user: user,
 	}
 
 	return client;
