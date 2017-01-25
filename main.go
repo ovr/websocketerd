@@ -65,7 +65,9 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Print(err)
+
+		http.Error(w, "StatusInternalServerError", http.StatusInternalServerError)
 		return
 	}
 
