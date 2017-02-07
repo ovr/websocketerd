@@ -12,6 +12,11 @@ import (
 	"net/http"
 	"runtime"
 	"time"
+	"regexp"
+	"encoding/hex"
+	"strings"
+	"strconv"
+	"errors"
 )
 
 var upgrader = websocket.Upgrader{
@@ -25,42 +30,97 @@ var upgrader = websocket.Upgrader{
 
 type JSONMap map[string]interface{}
 
-func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *http.Request) {
-	tokenString := r.URL.Query().Get("token")
-	if tokenString == "" {
-		http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
-		return
-	}
+type LoginToken struct {
+	UserId json.Number
+	Token string
+	BrowserHash string
+}
 
-	parser := &jwt.Parser{
-		UseJSONNumber: true,
-	}
-
-	token, err := parser.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-
-		//jwt.SigningMethodHS256.Verify()
-		//if _, ok := token.Method.(*jwt.SigningMethodRS256); !ok {
-		//	return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		//}
-
-		return []byte(config.JWTSecret), nil
+func RawUrlDecode(str string) string {
+	re := regexp.MustCompile(`(?Ui)%[0-9A-F]{2}`)
+	str = re.ReplaceAllStringFunc(str, func(s string) string {
+		b, err := hex.DecodeString(s[1:])
+		if err == nil {
+			return string(b)
+		}
+		return s
 	})
-	if err != nil {
-		http.Error(w, "StatusForbidden", http.StatusForbidden)
-		return
+	return str
+}
+
+func parseLoginToken(token string) (*LoginToken, error) {
+	var err error
+
+	tokenValue := RawUrlDecode(token)
+
+	parts := strings.Split(tokenValue, ",")
+	if len(parts) != 3 {
+		return nil, errors.New("Wrong login token")
 	}
 
+	_, err = strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	loginToken := &LoginToken{
+		UserId: json.Number(parts[0]),
+		Token: parts[1],
+		BrowserHash: parts[2],
+	}
+
+	return loginToken, nil
+}
+
+func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *http.Request) {
 	var tokenPayload TokenPayload
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	lt, err := r.Cookie("lt")
+	if err == nil {
+		loginToken, err := parseLoginToken(lt.Value)
+		if err != nil {
+			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		tokenPayload = TokenPayload{
-			UserId:  claims["uid"].(json.Number),
-			TokenId: claims["jti"].(json.Number),
+			UserId:  loginToken.UserId,
 		}
 	} else {
-		http.Error(w, "StatusForbidden", http.StatusForbidden)
-		return
+		tokenString := r.URL.Query().Get("token")
+		if tokenString == "" {
+			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		parser := &jwt.Parser{
+			UseJSONNumber: true,
+		}
+
+		token, err := parser.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			// Don't forget to validate the alg is what you expect:
+
+			//jwt.SigningMethodHS256.Verify()
+			//if _, ok := token.Method.(*jwt.SigningMethodRS256); !ok {
+			//	return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			//}
+
+			return []byte(config.JWTSecret), nil
+		})
+		if err != nil {
+			http.Error(w, "StatusForbidden", http.StatusForbidden)
+			return
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			tokenPayload = TokenPayload{
+				UserId:  claims["uid"].(json.Number),
+				TokenId: claims["jti"].(json.Number),
+			}
+		} else {
+			http.Error(w, "StatusForbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
