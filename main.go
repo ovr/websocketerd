@@ -1,17 +1,17 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
+	"github.com/dgrijalva/jwt-go"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/websocket"
+	"github.com/jinzhu/gorm"
+	"gopkg.in/redis.v5"
 	"log"
 	"net/http"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/websocket"
-	"time"
-	"gopkg.in/redis.v5"
-	"encoding/json"
 	"runtime"
-	"flag"
+	"time"
 )
 
 var upgrader = websocket.Upgrader{
@@ -26,7 +26,7 @@ var upgrader = websocket.Upgrader{
 type JSONMap map[string]interface{}
 
 func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *http.Request) {
-	tokenString := r.URL.Query().Get("token");
+	tokenString := r.URL.Query().Get("token")
 	if tokenString == "" {
 		http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
 		return
@@ -45,7 +45,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		//}
 
 		return []byte(config.JWTSecret), nil
-	});
+	})
 	if err != nil {
 		http.Error(w, "StatusForbidden", http.StatusForbidden)
 		return
@@ -55,7 +55,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		tokenPayload = TokenPayload{
-			UserId: claims["uid"].(json.Number),
+			UserId:  claims["uid"].(json.Number),
 			TokenId: claims["jti"].(json.Number),
 		}
 	} else {
@@ -74,15 +74,14 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 	var user *User = new(User)
 	server.db.First(user, tokenPayload.UserId.String())
 
-	log.Print("[Event] New connection");
-	client := NewClient(conn, tokenPayload, user);
+	log.Print("[Event] New connection")
+	client := NewClient(conn, tokenPayload, user)
 	server.clients[client] = true
 
-
-	server.redisHub.Subscribe("pubsub:user:" + tokenPayload.UserId.String(), client);
+	server.redisHub.Subscribe("pubsub:user:"+tokenPayload.UserId.String(), client)
 
 	go client.writePump(server)
-	client.readPump();
+	client.readPump()
 }
 
 type Server struct {
@@ -100,10 +99,10 @@ type Server struct {
 	unregisterChannel chan *Client
 }
 
-func (this *Server) Run()  {
+func (this *Server) Run() {
 	err := this.httpServer.ListenAndServe()
 	if err != nil {
-		log.Fatal("Cannot start HTTP Server", err);
+		log.Fatal("Cannot start HTTP Server", err)
 		panic(err)
 	}
 }
@@ -111,11 +110,11 @@ func (this *Server) Run()  {
 func (this *Server) RunHub() {
 	for {
 		select {
-		case client := <- this.unregisterChannel:
-			log.Print("[Event] Connection closed");
+		case client := <-this.unregisterChannel:
+			log.Print("[Event] Connection closed")
 
 			if _, ok := this.clients[client]; ok {
-				log.Print("Client Removed");
+				log.Print("Client Removed")
 
 				this.redisHub.Unsubscribe(client)
 				delete(this.clients, client)
@@ -132,16 +131,16 @@ func (this *Server) Stats() JSONMap {
 	return JSONMap{
 		"connections": len(this.clients),
 		"memory": JSONMap{
-			"alloc": mem.Alloc,
+			"alloc":       mem.Alloc,
 			"total-alloc": mem.TotalAlloc,
-			"heap-alloc": mem.HeapAlloc,
-			"heap-sys": mem.HeapSys,
+			"heap-alloc":  mem.HeapAlloc,
+			"heap-sys":    mem.HeapSys,
 		},
 		"pubsub": JSONMap{
 			"channels": len(this.redisHub.channelsToClients),
-			"clients": len(this.redisHub.clientsToChannels),
+			"clients":  len(this.redisHub.clientsToChannels),
 		},
-	};
+	}
 }
 
 func (this *Server) Clients() []JSONMap {
@@ -151,16 +150,16 @@ func (this *Server) Clients() []JSONMap {
 		clientMap := JSONMap{
 			"uid": client.tokenPayload.UserId,
 			"jti": client.tokenPayload.TokenId,
-		};
+		}
 
 		if channels, ok := this.redisHub.clientsToChannels[client]; ok {
-			clientMap["channels"] = channels;
+			clientMap["channels"] = channels
 		}
 
 		clients = append(
 			clients,
 			clientMap,
-		);
+		)
 	}
 
 	return clients
@@ -172,12 +171,12 @@ func (this *Server) PubSubChannels() []JSONMap {
 	for channel := range this.redisHub.channelsToClients {
 		channelMap := JSONMap{
 			"channel": channel,
-		};
+		}
 
 		channels = append(
 			channels,
 			channelMap,
-		);
+		)
 	}
 
 	return channels
@@ -192,55 +191,55 @@ func newServer(config *Configuration) *Server {
 	server := &Server{
 		clients: map[*Client]bool{},
 		httpServer: &http.Server{
-			Addr: ":8484",
+			Addr:           ":8484",
 			ReadTimeout:    10 * time.Second,
 			WriteTimeout:   10 * time.Second,
 			MaxHeaderBytes: 1 << 20,
 		},
 		redis: redis.NewClient(
 			&redis.Options{
-				Addr: config.Redis.Addr,
-				PoolSize: config.Redis.PoolSize,
+				Addr:       config.Redis.Addr,
+				PoolSize:   config.Redis.PoolSize,
 				MaxRetries: config.Redis.MaxRetries,
 			},
 		),
 		redisHub: NewRedisHub(
 			redis.NewClient(
 				&redis.Options{
-					Addr: config.Redis.Addr,
-					PoolSize: config.Redis.PoolSize,
+					Addr:       config.Redis.Addr,
+					PoolSize:   config.Redis.PoolSize,
 					MaxRetries: config.Redis.MaxRetries,
 				},
 			),
 		),
-		db: db,
+		db:                db,
 		unregisterChannel: make(chan *Client, 1024),
-	};
+	}
 
-	server.httpServer.Handler = http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	server.httpServer.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v1/ws/stats":
-			data, err := json.Marshal(server.Stats());
+			data, err := json.Marshal(server.Stats())
 			if err != nil {
 				log.Print(err)
 			} else {
-				w.Write(data);
+				w.Write(data)
 			}
 			break
 		case "/v1/ws/clients":
-			data, err := json.Marshal(server.Clients());
+			data, err := json.Marshal(server.Clients())
 			if err != nil {
 				log.Print(err)
 			} else {
-				w.Write(data);
+				w.Write(data)
 			}
 			break
 		case "/v1/ws/pubsub":
-			data, err := json.Marshal(server.PubSubChannels());
+			data, err := json.Marshal(server.PubSubChannels())
 			if err != nil {
 				log.Print(err)
 			} else {
-				w.Write(data);
+				w.Write(data)
 			}
 			break
 		default:
@@ -249,22 +248,22 @@ func newServer(config *Configuration) *Server {
 		}
 	})
 
-	go server.RunHub();
+	go server.RunHub()
 
 	return server
 }
 
 func main() {
 	var (
-		configFile    string
+		configFile string
 	)
 
 	flag.StringVar(&configFile, "config", "./config.json", "Config filepath")
-	flag.Parse();
+	flag.Parse()
 
-	configuration := &Configuration{};
-	configuration.Init(configFile);
+	configuration := &Configuration{}
+	configuration.Init(configFile)
 
-	server := newServer(configuration);
+	server := newServer(configuration)
 	server.Run()
 }
