@@ -260,6 +260,7 @@ func main() {
 	)
 
 	flag.StringVar(&configFile, "config", "./config.json", "Config filepath")
+	flag.Parse();
 
 	configuration := &Configuration{};
 	configuration.Init(configFile);
