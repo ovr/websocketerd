@@ -1,6 +1,8 @@
 package main
 
-import "strconv"
+import (
+	"strconv"
+)
 
 type User struct {
 	Id             uint64 `gorm:"primary_key"`
@@ -17,4 +19,10 @@ type Thread struct {
 
 func (this Thread) TableName() string {
 	return "users" + strconv.FormatUint(this.threadSharedId, 64)
+}
+
+type LoginToken struct {
+	UserId uint64
+	Token string
+	Updated string
 }

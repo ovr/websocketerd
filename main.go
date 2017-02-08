@@ -30,7 +30,7 @@ var upgrader = websocket.Upgrader{
 
 type JSONMap map[string]interface{}
 
-type LoginToken struct {
+type AutoLoginToken struct {
 	UserId json.Number
 	Token string
 	BrowserHash string
@@ -48,7 +48,7 @@ func RawUrlDecode(str string) string {
 	return str
 }
 
-func parseLoginToken(token string) (*LoginToken, error) {
+func parseAutoLoginToken(token string) (*AutoLoginToken, error) {
 	var err error
 
 	tokenValue := RawUrlDecode(token)
@@ -63,7 +63,7 @@ func parseLoginToken(token string) (*LoginToken, error) {
 		return nil, err
 	}
 
-	loginToken := &LoginToken{
+	loginToken := &AutoLoginToken{
 		UserId: json.Number(parts[0]),
 		Token: parts[1],
 		BrowserHash: parts[2],
@@ -77,16 +77,26 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	lt, err := r.Cookie("lt")
 	if err == nil {
-		loginToken, err := parseLoginToken(lt.Value)
+		autologinToken, err := parseAutoLoginToken(lt.Value)
 		if err != nil {
 			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		tokenPayload = TokenPayload{
-			UserId:  loginToken.UserId,
+			UserId:  autologinToken.UserId,
+		}
+
+		row := LoginToken{};
+		server.db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).First(&row)
+
+		if uid, _ := autologinToken.UserId.Int64(); uint64(uid) != row.UserId {
+			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
+			return
 		}
 	} else {
+		log.Print(err)
+
 		tokenString := r.URL.Query().Get("token")
 		if tokenString == "" {
 			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
