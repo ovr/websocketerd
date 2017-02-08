@@ -258,6 +258,10 @@ func newServer(config *Configuration) *Server {
 		panic(err)
 	}
 
+	db.LogMode(config.DB.ShowLog)
+	db.DB().SetMaxIdleConns(config.DB.MaxIdleConnections)
+	db.DB().SetMaxOpenConns(config.DB.MaxOpenConnections)
+
 	server := &Server{
 		clients: map[*Client]bool{},
 		httpServer: &http.Server{
