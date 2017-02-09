@@ -73,6 +73,12 @@ func parseAutoLoginToken(token string) (*AutoLoginToken, error) {
 }
 
 func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *http.Request) {
+	if err := recover(); err != nil {
+		log.Printf("Recovery from panic\n%s", err)
+
+		http.Error(w, "StatusInternalServerError", http.StatusInternalServerError)
+	}
+
 	var tokenPayload TokenPayload
 
 	lt, err := r.Cookie("lt")
