@@ -50,13 +50,20 @@ const (
 	maxMessageSize = 512
 )
 
+type WebSocketNotification struct {
+	Type string
+	Entity interface{}
+}
+
 func (this *Client) readPump() {
 	defer func() {
 		this.conn.Close()
 	}()
 
 	for {
-		_, message, err := this.conn.ReadMessage()
+		var err error
+
+		_, plainMessage, err := this.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Printf("error: %v", err)
@@ -64,8 +71,16 @@ func (this *Client) readPump() {
 			break
 		}
 
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		log.Print(string(message));
+		plainMessage = bytes.TrimSpace(bytes.Replace(plainMessage, newline, space, -1))
+
+		message := &WebSocketNotification{};
+
+		err = json.Unmarshal(plainMessage, message);
+		if err != nil {
+			log.Print(err)
+
+			continue;
+		}
 	}
 }
 
