@@ -1,10 +1,10 @@
 package main
 
 import (
-	"gopkg.in/redis.v5"
-	"time"
+	"github.com/go-redis/redis"
 	"log"
 	"sync"
+	"time"
 )
 
 type ClientsMap map[*Client]bool
@@ -17,44 +17,40 @@ type RedisHub struct {
 	connection *redis.Client
 	pubSub     *redis.PubSub
 
-	channelsToClients ChannelsMapToClientsMap
+	channelsToClients     ChannelsMapToClientsMap
 	channelsToClientsLock sync.Mutex
 
-	clientsToChannels ClientsToChannelsMap
+	clientsToChannels     ClientsToChannelsMap
 	clientsToChannelsLock sync.Mutex
 }
 
 const (
-	redisSleep          time.Duration = 125 * time.Millisecond
+	redisSleep time.Duration = 125 * time.Millisecond
 )
 
 func NewRedisHub(client *redis.Client) *RedisHub {
-	pubSub, err := client.Subscribe("controller")
-	if err != nil {
-		log.Printf("Redis subscribe to controller err: %s", err)
-	}
+	pubSub := client.Subscribe("controller")
 
 	hub := &RedisHub{
-		connection: client,
-		pubSub: pubSub,
+		connection:        client,
+		pubSub:            pubSub,
 		channelsToClients: ChannelsMapToClientsMap{},
 		clientsToChannels: ClientsToChannelsMap{},
 	}
 
-	go hub.Listen();
+	go hub.Listen()
 
 	return hub
 }
 
 func (this *RedisHub) Listen() {
 	for {
-		message, err := this.pubSub.ReceiveMessage();
-		if err != nil {
-			log.Printf("Redis ReceiveMessage err: %s", err)
-		} else {
-			log.Print(message);
+		channel := this.pubSub.Channel()
 
-			this.channelsToClientsLock.Lock();
+		for message := range channel {
+			log.Print(message)
+
+			this.channelsToClientsLock.Lock()
 
 			if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
 				for client := range clientsMap {
@@ -62,37 +58,34 @@ func (this *RedisHub) Listen() {
 				}
 			}
 
-			this.channelsToClientsLock.Unlock();
+			this.channelsToClientsLock.Unlock()
 		}
-
-		// Sleep until next iteration
-		time.Sleep(redisSleep)
 	}
 }
 
 func (this *RedisHub) Unsubscribe(client *Client) {
-	this.channelsToClientsLock.Lock();
-	defer this.channelsToClientsLock.Unlock();
+	this.channelsToClientsLock.Lock()
+	defer this.channelsToClientsLock.Unlock()
 
 	if channels, ok := this.clientsToChannels[client]; ok {
 		for channel := range channels {
 			if _, ok := this.channelsToClients[channel]; ok {
-				delete(this.channelsToClients[channel], client);
+				delete(this.channelsToClients[channel], client)
 
-				if (len(this.channelsToClients[channel]) == 0) {
+				if len(this.channelsToClients[channel]) == 0 {
 					err := this.pubSub.Unsubscribe(channel)
 					if err != nil {
 						log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
 					}
 
-					delete(this.channelsToClients, channel);
+					delete(this.channelsToClients, channel)
 				}
 			}
 		}
 
-		delete(this.clientsToChannels, client);
+		delete(this.clientsToChannels, client)
 	} else {
-		log.Print("Cannot find a client from clientsToChannels map");
+		log.Print("Cannot find a client from clientsToChannels map")
 	}
 }
 
@@ -101,31 +94,30 @@ func (this *RedisHub) Subscribe(channel string, client *Client) {
 	if err != nil {
 		log.Printf("Redis subscribe to %s err: %s", channel, err)
 	} else {
-		this.channelsToClientsLock.Lock();
+		this.channelsToClientsLock.Lock()
 
 		if channelClients, ok := this.channelsToClients[channel]; ok {
-			channelClients[client] = true;
+			channelClients[client] = true
 		} else {
-			clients := ClientsMap{};
-			clients[client] = true;
+			clients := ClientsMap{}
+			clients[client] = true
 
-			this.channelsToClients[channel] = clients;
+			this.channelsToClients[channel] = clients
 		}
 
-		this.channelsToClientsLock.Unlock();
+		this.channelsToClientsLock.Unlock()
 
-
-		this.clientsToChannelsLock.Lock();
+		this.clientsToChannelsLock.Lock()
 
 		if clientChannels, ok := this.clientsToChannels[client]; ok {
-			clientChannels[channel] = true;
+			clientChannels[channel] = true
 		} else {
-			channels := ChannelsMap{};
-			channels[channel] = true;
+			channels := ChannelsMap{}
+			channels[channel] = true
 
-			this.clientsToChannels[client] = channels;
+			this.clientsToChannels[client] = channels
 		}
 
-		this.clientsToChannelsLock.Unlock();
+		this.clientsToChannelsLock.Unlock()
 	}
 }
