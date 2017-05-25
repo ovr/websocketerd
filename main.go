@@ -9,7 +9,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
-	"gopkg.in/redis.v5"
+	"github.com/go-redis/redis"
 	"log"
 	"net/http"
 	"regexp"
