@@ -1,22 +1,22 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"flag"
 	"github.com/dgrijalva/jwt-go"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
-	"gopkg.in/redis.v5"
+	"github.com/go-redis/redis"
 	"log"
 	"net/http"
-	"runtime"
-	"time"
 	"regexp"
-	"encoding/hex"
-	"strings"
+	"runtime"
 	"strconv"
-	"errors"
+	"strings"
+	"time"
 )
 
 var upgrader = websocket.Upgrader{
@@ -31,8 +31,8 @@ var upgrader = websocket.Upgrader{
 type JSONMap map[string]interface{}
 
 type AutoLoginToken struct {
-	UserId json.Number
-	Token string
+	UserId      json.Number
+	Token       string
 	BrowserHash string
 }
 
@@ -64,8 +64,8 @@ func parseAutoLoginToken(token string) (*AutoLoginToken, error) {
 	}
 
 	loginToken := &AutoLoginToken{
-		UserId: json.Number(parts[0]),
-		Token: parts[1],
+		UserId:      json.Number(parts[0]),
+		Token:       parts[1],
 		BrowserHash: parts[2],
 	}
 
@@ -90,13 +90,13 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		}
 
 		tokenPayload = TokenPayload{
-			UserId:  autologinToken.UserId,
+			UserId: autologinToken.UserId,
 		}
 
-		row := LoginToken{};
-		server.db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).First(&row)
+		row := LoginToken{}
+		notFound := server.db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).First(&row).RecordNotFound()
 
-		if uid, _ := autologinToken.UserId.Int64(); uint64(uid) != row.UserId {
+		if notFound {
 			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
 			return
 		}
