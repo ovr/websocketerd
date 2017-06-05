@@ -7,6 +7,14 @@ WebSocketErD
 
 ![GitHub Logo](/docs/diagram.jpg)
 
+# Docker
+
+Build:
+
+```sh
+docker build --no-cache=true -t interpals/websocketerd .
+```
+
 # LICENSE
 
 MIT License
