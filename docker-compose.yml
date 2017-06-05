@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  wsd:
+    build: .
+    environment:
+      JWT_SECRET: ${INTERPALS_JWT_SECRET}
+      REDIS_ADDR: ${INTERPALS_REDIS_PUBSUB_ADDR}
+      DB_URI: ${INTERPALS_DB_ADDR}
+    ports:
+      - "8484:8484"
+    network_mode: host
+    restart: always

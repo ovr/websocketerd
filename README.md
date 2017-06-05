@@ -12,7 +12,7 @@ WebSocketErD
 Build:
 
 ```sh
-docker build --no-cache=true -t interpals/websocketerd .
+docker build --no-cache=true -t interpalsnet/websocketerd .
 ```
 
 # LICENSE
