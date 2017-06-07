@@ -148,7 +148,11 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 	}
 
 	var user *User = new(User)
-	server.db.First(user, tokenPayload.UserId.String())
+
+	if (server.db.First(user, tokenPayload.UserId.String()).RecordNotFound()) {
+		http.Error(w, "StatusForbidden", http.StatusForbidden)
+		return
+	}
 
 	log.Print("[Event] New connection")
 	client := NewClient(conn, tokenPayload, user)
