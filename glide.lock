@@ -1,10 +1,10 @@
-hash: 75b36f3a788ad2a444441f12a68eec9b410868b979627f831c52906194a0ff0d
-updated: 2017-05-25T13:19:03.678132109Z
+hash: b4d63ebe14f97bf4124650ba56f740a7339b800d415d5da1f52cf2196a7d7323
+updated: 2017-06-07T06:02:37.953335653Z
 imports:
 - name: github.com/dgrijalva/jwt-go
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
 - name: github.com/go-redis/redis
-  version: 368f0ea0bac726049f4a81aebfee0a76c91c50a7
+  version: 663bb76bcc3763c41877b63671003705a47289c5
   subpackages:
   - internal
   - internal/consistenthash
@@ -19,12 +19,4 @@ imports:
   version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
 - name: github.com/jinzhu/inflection
   version: 1c35d901db3da928c72a72d8458480cc9ade058f
-- name: gopkg.in/redis.v5
-  version: a16aeec10ff407b1e7be6dd35797ccf5426ef0f0
-  subpackages:
-  - internal
-  - internal/consistenthash
-  - internal/hashtag
-  - internal/pool
-  - internal/proto
 testImports: []
