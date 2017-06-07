@@ -17,14 +17,18 @@ type Client struct {
 	tokenPayload TokenPayload
 
 	user *User
+
+	// HTTP Header "User-Agent"
+	agent string
 }
 
-func NewClient(conn *websocket.Conn, tokenPayload TokenPayload, user *User) *Client {
+func NewClient(conn *websocket.Conn, tokenPayload TokenPayload, user *User, agent string) *Client {
 	client := &Client{
 		conn:         conn,
 		sendChannel:  make(chan []byte, 256),
 		tokenPayload: tokenPayload,
 		user:         user,
+		agent:        agent,
 	}
 
 	return client
@@ -43,7 +47,7 @@ const (
 	pongWait = 60 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = 2 * time.Second
+	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
@@ -58,10 +62,22 @@ func (this *Client) GetDefaultPubChannel() string {
 	return "pubsub:user:" + this.tokenPayload.UserId.String()
 }
 
-func (this *Client) readPump() {
+func (this *Client) readPump(server *Server) {
 	defer func() {
+		server.unregisterChannel <- this
+
 		this.conn.Close()
 	}()
+
+	this.conn.SetReadLimit(maxMessageSize)
+	this.conn.SetReadDeadline(time.Now().Add(pongWait))
+	this.conn.SetPongHandler(
+		func(string) error {
+			this.conn.SetReadDeadline(time.Now().Add(pongWait));
+
+			return nil
+		},
+	)
 
 	for {
 		var err error
