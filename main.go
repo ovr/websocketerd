@@ -238,7 +238,7 @@ func (this *Server) Clients() []JSONMap {
 
 	for client := range this.clients {
 		clientMap := JSONMap{
-			"uid": client.tokenPayload.UserId,
+			"uid": client.tokenPayload.UserId.String(),
 			"jti": client.tokenPayload.TokenId,
 			"agent": client.agent,
 		}
