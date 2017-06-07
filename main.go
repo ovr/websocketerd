@@ -6,10 +6,10 @@ import (
 	"errors"
 	"flag"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
-	"github.com/go-redis/redis"
 	"log"
 	"net/http"
 	"regexp"
@@ -149,16 +149,15 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	var user *User = new(User)
 
-	if (server.db.First(user, tokenPayload.UserId.String()).RecordNotFound()) {
+	if server.db.First(user, tokenPayload.UserId.String()).RecordNotFound() {
 		http.Error(w, "StatusForbidden", http.StatusForbidden)
 		return
 	}
 
 	log.Print("[Event] New connection")
-	client := NewClient(conn, tokenPayload, user)
-	server.clients[client] = true
 
-	server.redisHub.Subscribe("pubsub:user:"+tokenPayload.UserId.String(), client)
+	client := NewClient(conn, tokenPayload, user)
+	server.registerChannel <- client
 
 	go client.writePump(server)
 	client.readPump()
@@ -175,6 +174,9 @@ type Server struct {
 
 	db *gorm.DB
 
+	// Register requests from clients.
+	registerChannel chan *Client
+
 	// Unregister requests from clients.
 	unregisterChannel chan *Client
 }
@@ -190,6 +192,12 @@ func (this *Server) Run() {
 func (this *Server) RunHub() {
 	for {
 		select {
+		case client := <-this.registerChannel:
+			log.Print("[Event] Connection open")
+
+			this.clients[client] = true
+
+			this.redisHub.Subscribe(client.GetDefaultPubChannel(), client)
 		case client := <-this.unregisterChannel:
 			log.Print("[Event] Connection closed")
 

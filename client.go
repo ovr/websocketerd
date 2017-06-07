@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
-	"github.com/gorilla/websocket"
-	"time"
 	"bytes"
 	"encoding/json"
+	"github.com/gorilla/websocket"
+	"log"
+	"time"
 )
 
 type Client struct {
@@ -21,20 +21,19 @@ type Client struct {
 
 func NewClient(conn *websocket.Conn, tokenPayload TokenPayload, user *User) *Client {
 	client := &Client{
-		conn: conn,
-		sendChannel: make(chan []byte, 256),
+		conn:         conn,
+		sendChannel:  make(chan []byte, 256),
 		tokenPayload: tokenPayload,
-		user: user,
+		user:         user,
 	}
 
-	return client;
+	return client
 }
 
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
 )
-
 
 const (
 	// Time allowed to write a message to the peer.
@@ -51,8 +50,12 @@ const (
 )
 
 type WebSocketNotification struct {
-	Type string
+	Type   string
 	Entity interface{}
+}
+
+func (this *Client) GetDefaultPubChannel() string {
+	return "pubsub:user:" + this.tokenPayload.UserId.String()
 }
 
 func (this *Client) readPump() {
@@ -73,13 +76,13 @@ func (this *Client) readPump() {
 
 		plainMessage = bytes.TrimSpace(bytes.Replace(plainMessage, newline, space, -1))
 
-		message := &WebSocketNotification{};
+		message := &WebSocketNotification{}
 
-		err = json.Unmarshal(plainMessage, message);
+		err = json.Unmarshal(plainMessage, message)
 		if err != nil {
 			log.Print(err)
 
-			continue;
+			continue
 		}
 	}
 }
@@ -95,7 +98,7 @@ func (this *Client) writePump(server *Server) {
 
 	for {
 		select {
-		case message, ok := <- this.sendChannel:
+		case message, ok := <-this.sendChannel:
 			this.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
 			if !ok {
@@ -118,6 +121,6 @@ func (this *Client) writePump(server *Server) {
 }
 
 type TokenPayload struct {
-	UserId json.Number
+	UserId  json.Number
 	TokenId json.Number
 }
