@@ -123,6 +123,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 			return []byte(config.JWTSecret), nil
 		})
+
 		if err != nil {
 			http.Error(w, "StatusForbidden", http.StatusForbidden)
 			return
@@ -156,7 +157,8 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	log.Print("[Event] New connection")
 
-	client := NewClient(conn, tokenPayload, user)
+
+	client := NewClient(conn, tokenPayload, user, r.Header.Get("User-Agent"))
 	server.registerChannel <- client
 
 	go client.writePump(server)
@@ -238,6 +240,7 @@ func (this *Server) Clients() []JSONMap {
 		clientMap := JSONMap{
 			"uid": client.tokenPayload.UserId,
 			"jti": client.tokenPayload.TokenId,
+			"agent": client.agent,
 		}
 
 		if channels, ok := this.redisHub.clientsToChannels[client]; ok {
