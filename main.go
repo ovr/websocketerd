@@ -162,7 +162,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 	server.registerChannel <- client
 
 	go client.writePump(server)
-	client.readPump()
+	client.readPump(server)
 }
 
 type Server struct {

@@ -62,8 +62,10 @@ func (this *Client) GetDefaultPubChannel() string {
 	return "pubsub:user:" + this.tokenPayload.UserId.String()
 }
 
-func (this *Client) readPump() {
+func (this *Client) readPump(server *Server) {
 	defer func() {
+		server.unregisterChannel <- this
+
 		this.conn.Close()
 	}()
 
