@@ -305,6 +305,7 @@ func newServer(config *Configuration) *Server {
 			),
 		),
 		db:                db,
+		registerChannel: make(chan *Client, 1024),
 		unregisterChannel: make(chan *Client, 1024),
 	}
 
