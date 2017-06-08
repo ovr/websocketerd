@@ -18,11 +18,13 @@ var upgrader = websocket.Upgrader{
 }
 
 func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *http.Request) {
-	if err := recover(); err != nil {
-		log.Printf("Recovery from panic\n%s", err)
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("Recovery from panic\n%s", err)
 
-		http.Error(w, "StatusInternalServerError", http.StatusInternalServerError)
-	}
+			http.Error(w, "StatusInternalServerError", http.StatusInternalServerError)
+		}
+	}()
 
 	var tokenPayload TokenPayload
 
