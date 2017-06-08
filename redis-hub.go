@@ -76,7 +76,10 @@ func (this RedisHub) Listen() {
 
 func (this RedisHub) Unsubscribe(client *Client) {
 	this.channelsToClientsLock.Lock()
+	this.clientsToChannelsLock.Lock()
+
 	defer this.channelsToClientsLock.Unlock()
+	defer this.clientsToChannelsLock.Unlock()
 
 	if channels, ok := this.clientsToChannels[client]; ok {
 		for channel := range channels {
