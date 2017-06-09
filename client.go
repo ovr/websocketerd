@@ -73,7 +73,7 @@ func (this *Client) readPump(server *Server) {
 	this.conn.SetReadDeadline(time.Now().Add(pongWait))
 	this.conn.SetPongHandler(
 		func(string) error {
-			this.conn.SetReadDeadline(time.Now().Add(pongWait));
+			this.conn.SetReadDeadline(time.Now().Add(pongWait))
 
 			return nil
 		},
@@ -85,8 +85,9 @@ func (this *Client) readPump(server *Server) {
 		_, plainMessage, err := this.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("error: %v", err)
+				log.Printf("Error: %v", err)
 			}
+
 			break
 		}
 

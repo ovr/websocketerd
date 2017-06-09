@@ -2,7 +2,16 @@ package main
 
 import (
 	"strconv"
+	"encoding/json"
 )
+
+type JSONMap map[string]interface{}
+
+type AutoLoginToken struct {
+	UserId      json.Number
+	Token       string
+	BrowserHash string
+}
 
 type User struct {
 	Id             uint64 `gorm:"primary_key"`

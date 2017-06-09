@@ -4,16 +4,11 @@ import (
 	"github.com/go-redis/redis"
 	"log"
 	"sync"
-	"time"
 )
 
-type ClientsMap map[*Client]bool
-type ChannelsMapToClientsMap map[string]ClientsMap
-
-type ChannelsMap map[string]bool
-type ClientsToChannelsMap map[*Client]ChannelsMap
-
 type RedisHub struct {
+	HubInterface
+
 	connection *redis.Client
 	pubSub     *redis.PubSub
 
@@ -24,14 +19,10 @@ type RedisHub struct {
 	clientsToChannelsLock sync.Mutex
 }
 
-const (
-	redisSleep time.Duration = 125 * time.Millisecond
-)
-
-func NewRedisHub(client *redis.Client) *RedisHub {
+func NewRedisHub(client *redis.Client) HubInterface {
 	pubSub := client.Subscribe("controller")
 
-	hub := &RedisHub{
+	hub := RedisHub{
 		connection:        client,
 		pubSub:            pubSub,
 		channelsToClients: ChannelsMapToClientsMap{},
@@ -43,7 +34,27 @@ func NewRedisHub(client *redis.Client) *RedisHub {
 	return hub
 }
 
-func (this *RedisHub) Listen() {
+func (this RedisHub) GetChannels() ChannelsMapToClientsMap {
+	return this.channelsToClients;
+}
+
+func (this RedisHub) GetChannelsForClient(client *Client) ChannelsMap {
+	if channels, ok := this.clientsToChannels[client]; ok {
+		return channels
+	}
+
+	return nil
+}
+
+func (this RedisHub) GetClientsCount() int {
+	return len(this.clientsToChannels);
+}
+
+func (this RedisHub) GetChannelsCount() int {
+	return len(this.channelsToClients);
+}
+
+func (this RedisHub) Listen() {
 	for {
 		channel := this.pubSub.Channel()
 
@@ -63,9 +74,12 @@ func (this *RedisHub) Listen() {
 	}
 }
 
-func (this *RedisHub) Unsubscribe(client *Client) {
+func (this RedisHub) Unsubscribe(client *Client) {
 	this.channelsToClientsLock.Lock()
+	this.clientsToChannelsLock.Lock()
+
 	defer this.channelsToClientsLock.Unlock()
+	defer this.clientsToChannelsLock.Unlock()
 
 	if channels, ok := this.clientsToChannels[client]; ok {
 		for channel := range channels {
@@ -89,7 +103,7 @@ func (this *RedisHub) Unsubscribe(client *Client) {
 	}
 }
 
-func (this *RedisHub) Subscribe(channel string, client *Client) {
+func (this RedisHub) Subscribe(channel string, client *Client) {
 	err := this.pubSub.Subscribe(channel)
 	if err != nil {
 		log.Printf("Redis subscribe to %s err: %s", channel, err)
