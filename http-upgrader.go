@@ -104,10 +104,14 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	log.Print("[Event] New connection")
 
-
 	client := NewClient(conn, tokenPayload, user, r.Header.Get("User-Agent"))
 	server.registerChannel <- client
 
+	// launch a new goroutine, now http server can free unneeded things
+	go handleClientWSConnection(client, server);
+}
+
+func handleClientWSConnection(client *Client, server *Server) {
 	go client.writePump(server)
 	client.readPump(server)
 }
