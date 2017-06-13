@@ -1,5 +1,5 @@
-hash: b4d63ebe14f97bf4124650ba56f740a7339b800d415d5da1f52cf2196a7d7323
-updated: 2017-06-07T06:02:37.953335653Z
+hash: 653cb106fccbf6dc5c34a115d7ad0385142de5b7a7336e85c66597ca9f0c9a76
+updated: 2017-06-13T09:38:53.142659621Z
 imports:
 - name: github.com/dgrijalva/jwt-go
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
@@ -19,4 +19,12 @@ imports:
   version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
 - name: github.com/jinzhu/inflection
   version: 1c35d901db3da928c72a72d8458480cc9ade058f
+- name: github.com/newrelic/go-agent
+  version: 29ec3cd1bb2f21d21d36da37dae52695cb2c3a17
+  subpackages:
+  - internal
+  - internal/jsonx
+  - internal/logger
+  - internal/sysinfo
+  - internal/utilization
 testImports: []
