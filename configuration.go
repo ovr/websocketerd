@@ -1,16 +1,16 @@
 package main
 
 import (
-	"io/ioutil"
-	"fmt"
-	"os"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
 )
 
 type RedisConfiguration struct {
-	Addr string `json:"addr"`
-	MaxRetries int `json:"max_retries"`
-	PoolSize int `json:"pool_size"`
+	Addr       string `json:"addr"`
+	MaxRetries int    `json:"max_retries"`
+	PoolSize   int    `json:"pool_size"`
 }
 
 type DataBaseConfiguration struct {
@@ -24,9 +24,10 @@ type DataBaseConfiguration struct {
 }
 
 type Configuration struct {
-	JWTSecret string `json:"jwt_secret"`
-	Redis RedisConfiguration `json:"redis"`
-	DB DataBaseConfiguration `json:"db"`
+	NewRelicLicenseKey string                `json:"newrelic_license_key"`
+	JWTSecret          string                `json:"jwt_secret"`
+	Redis              RedisConfiguration    `json:"redis"`
+	DB                 DataBaseConfiguration `json:"db"`
 }
 
 func (this *Configuration) Init(configFile string) {

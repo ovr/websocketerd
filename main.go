@@ -1,6 +1,11 @@
 package main
 
-import "flag"
+import (
+	"flag"
+	"fmt"
+	"github.com/newrelic/go-agent"
+	"os"
+)
 
 func main() {
 	var (
@@ -12,6 +17,15 @@ func main() {
 
 	configuration := &Configuration{}
 	configuration.Init(configFile)
+
+	_, err := newrelic.NewApplication(
+		newrelic.NewConfig("WebSocketerD", configuration.NewRelicLicenseKey),
+	)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	server := newServer(configuration)
 	server.Run()
