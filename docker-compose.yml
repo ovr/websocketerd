@@ -4,6 +4,7 @@ services:
   wsd:
     build: .
     environment:
+      NEWRELIC_LICENSE_KEY: ${NEWRELIC_LICENSE_KEY}
       JWT_SECRET: ${INTERPALS_JWT_SECRET}
       REDIS_ADDR: ${INTERPALS_REDIS_PUBSUB_ADDR}
       DB_URI: ${INTERPALS_DB_ADDR}
