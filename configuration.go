@@ -23,11 +23,17 @@ type DataBaseConfiguration struct {
 	Limit              uint16 `json:"limit"`
 }
 
+type HubConfiguration struct {
+	RegisterChannelSize   int `json:"register_channel_size"`
+	UnregisterChannelSize int `json:"unregister_channel_size"`
+}
+
 type Configuration struct {
 	NewRelicLicenseKey string                `json:"newrelic_license_key"`
 	JWTSecret          string                `json:"jwt_secret"`
 	Redis              RedisConfiguration    `json:"redis"`
 	DB                 DataBaseConfiguration `json:"db"`
+	Hub                HubConfiguration      `json:"hub"`
 }
 
 func (this *Configuration) Init(configFile string) {

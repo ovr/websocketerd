@@ -25,14 +25,14 @@ type RedisHub struct {
 	unregisterChannel chan *ClientChannelPair
 }
 
-func NewRedisHub(client *redis.Client) HubInterface {
+func NewRedisHub(client *redis.Client, config HubConfiguration) HubInterface {
 	pubSub := client.PSubscribe("pubsub:user:*")
 
 	hub := RedisHub{
 		connection:        client,
 		pubSub:            pubSub,
-		registerChannel:   make(chan *Client, 1024),
-		unregisterChannel: make(chan *ClientChannelPair, 1024),
+		registerChannel:   make(chan *Client, config.RegisterChannelSize),
+		unregisterChannel: make(chan *ClientChannelPair, config.UnregisterChannelSize),
 		channelsToClients: ChannelsMapToClientsMap{},
 		clientsToChannels: ClientsToChannelsMap{},
 	}

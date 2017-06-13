@@ -147,6 +147,7 @@ func newServer(config *Configuration) *Server {
 					MaxRetries: config.Redis.MaxRetries,
 				},
 			),
+			config.Hub,
 		),
 		db:                db,
 		registerChannel:   make(chan *Client, 1024),
