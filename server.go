@@ -76,6 +76,8 @@ func (this *Server) Stats() JSONMap {
 		"pubsub": JSONMap{
 			"channels": this.hub.GetChannelsCount(),
 			"clients":  this.hub.GetClientsCount(),
+			"register_channel_size": this.hub.GetRegisterChannelSize(),
+			"unregister_channel_size": this.hub.GetUnRegisterChannelSize(),
 		},
 	}
 }

@@ -18,6 +18,9 @@ type HubInterface interface {
 
 	Subscribe(channel string, client *Client)
 
+	GetRegisterChannelSize() int
+	GetUnRegisterChannelSize() int
+
 	GetClientsCount() int
 
 	GetChannelsCount() int

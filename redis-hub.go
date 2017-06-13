@@ -42,6 +42,14 @@ func NewRedisHub(client *redis.Client, config HubConfiguration) HubInterface {
 	return hub
 }
 
+func (this RedisHub) GetRegisterChannelSize() int {
+	return len(this.registerChannel)
+}
+
+func (this RedisHub) GetUnRegisterChannelSize() int {
+	return len(this.unregisterChannel)
+}
+
 func (this RedisHub) GetChannels() ChannelsMapToClientsMap {
 	return this.channelsToClients
 }
