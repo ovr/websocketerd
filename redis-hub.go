@@ -20,7 +20,7 @@ type RedisHub struct {
 }
 
 func NewRedisHub(client *redis.Client) HubInterface {
-	pubSub := client.Subscribe("controller")
+	pubSub := client.PSubscribe("pubsub:user:*")
 
 	hub := RedisHub{
 		connection:        client,
@@ -84,15 +84,10 @@ func (this RedisHub) Unsubscribe(client *Client) {
 	if channels, ok := this.clientsToChannels[client]; ok {
 		for channel := range channels {
 			if _, ok := this.channelsToClients[channel]; ok {
-				delete(this.channelsToClients[channel], client)
-
-				if len(this.channelsToClients[channel]) == 0 {
-					err := this.pubSub.Unsubscribe(channel)
-					if err != nil {
-						log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
-					}
-
+				if len(this.channelsToClients[channel]) == 1 {
 					delete(this.channelsToClients, channel)
+				} else {
+					delete(this.channelsToClients[channel], client)
 				}
 			}
 		}
@@ -104,34 +99,29 @@ func (this RedisHub) Unsubscribe(client *Client) {
 }
 
 func (this RedisHub) Subscribe(channel string, client *Client) {
-	err := this.pubSub.Subscribe(channel)
-	if err != nil {
-		log.Printf("Redis subscribe to %s err: %s", channel, err)
+	this.channelsToClientsLock.Lock()
+
+	if channelClients, ok := this.channelsToClients[channel]; ok {
+		channelClients[client] = true
 	} else {
-		this.channelsToClientsLock.Lock()
+		clients := ClientsMap{}
+		clients[client] = true
 
-		if channelClients, ok := this.channelsToClients[channel]; ok {
-			channelClients[client] = true
-		} else {
-			clients := ClientsMap{}
-			clients[client] = true
-
-			this.channelsToClients[channel] = clients
-		}
-
-		this.channelsToClientsLock.Unlock()
-
-		this.clientsToChannelsLock.Lock()
-
-		if clientChannels, ok := this.clientsToChannels[client]; ok {
-			clientChannels[channel] = true
-		} else {
-			channels := ChannelsMap{}
-			channels[channel] = true
-
-			this.clientsToChannels[client] = channels
-		}
-
-		this.clientsToChannelsLock.Unlock()
+		this.channelsToClients[channel] = clients
 	}
+
+	this.channelsToClientsLock.Unlock()
+
+	this.clientsToChannelsLock.Lock()
+
+	if clientChannels, ok := this.clientsToChannels[client]; ok {
+		clientChannels[channel] = true
+	} else {
+		channels := ChannelsMap{}
+		channels[channel] = true
+
+		this.clientsToChannels[client] = channels
+	}
+
+	this.clientsToChannelsLock.Unlock()
 }
