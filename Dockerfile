@@ -1,4 +1,4 @@
-FROM ubuntu:17.10
+FROM golang:1.8.3
 
 MAINTAINER Patsura Dmitry <talk@dmtry.me>
 
@@ -21,14 +21,13 @@ RUN apt-get update \
     && apt-get -y upgrade \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
-        golang-go \
         git \
         curl \
-        wget \
     && mkdir -p /go/bin \
     && curl https://glide.sh/get | sh \
     && glide install \
     && go install github.com/interpals/websocketerd \
+    && apt-get remove -y git curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
