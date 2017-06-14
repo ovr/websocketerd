@@ -30,12 +30,12 @@ type Server struct {
 }
 
 func (this *Server) Run() {
+	go this.Listen()
+	
 	err := this.httpServer.ListenAndServe()
 	if err != nil {
 		log.Panic("Cannot start HTTP Server", err)
 	}
-
-	go this.Listen()
 }
 
 func (this *Server) Listen() {
