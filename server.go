@@ -5,6 +5,7 @@ import (
 	"github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"github.com/newrelic/go-agent"
 	"log"
 	"net/http"
 	"runtime"
@@ -32,7 +33,7 @@ type Server struct {
 func (this *Server) Run() {
 	go this.Listen()
 
-	go func () {
+	go func() {
 		err := this.httpServer.ListenAndServe()
 		if err != nil {
 			log.Panic("Cannot start HTTP Server", err)
@@ -117,7 +118,7 @@ func (this *Server) PubSubChannels() []JSONMap {
 	return channels
 }
 
-func newServer(config *Configuration) *Server {
+func newServer(config *Configuration, newRelicApp newrelic.Application) *Server {
 	db, err := gorm.Open(config.DB.Dialect, config.DB.Uri)
 	if err != nil {
 		panic(err)
@@ -160,36 +161,36 @@ func newServer(config *Configuration) *Server {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/v1/ws/stats", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(newrelic.WrapHandleFunc(newRelicApp, "/v1/ws/stats", func(w http.ResponseWriter, r *http.Request) {
 		data, err := json.Marshal(server.Stats())
 		if err != nil {
 			log.Print(err)
 		} else {
 			w.Write(data)
 		}
-	})
+	}))
 
-	mux.HandleFunc("/v1/ws/clients", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(newrelic.WrapHandleFunc(newRelicApp, "/v1/ws/clients", func(w http.ResponseWriter, r *http.Request) {
 		data, err := json.Marshal(server.Clients())
 		if err != nil {
 			log.Print(err)
 		} else {
 			w.Write(data)
 		}
-	})
+	}))
 
-	mux.HandleFunc("/v1/ws/pubsub", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(newrelic.WrapHandleFunc(newRelicApp, "/v1/ws/pubsub", func(w http.ResponseWriter, r *http.Request) {
 		data, err := json.Marshal(server.PubSubChannels())
 		if err != nil {
 			log.Print(err)
 		} else {
 			w.Write(data)
 		}
-	})
+	}))
 
-	mux.HandleFunc("/v1/ws", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(newrelic.WrapHandleFunc(newRelicApp, "/v1/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(config, server, w, r)
-	})
+	}))
 
 	httpServer.Handler = mux
 

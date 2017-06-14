@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	server := newServer(configuration)
+	server := newServer(configuration, app)
 	server.Run()
 
 	<-stop
