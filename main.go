@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/newrelic/go-agent"
 	"os"
+	"os/signal"
+	"log"
 )
 
 func main() {
@@ -18,6 +20,9 @@ func main() {
 	configuration := &Configuration{}
 	configuration.Init(configFile)
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
 	_, err := newrelic.NewApplication(
 		newrelic.NewConfig("WebSocketerD", configuration.NewRelicLicenseKey),
 	)
@@ -29,4 +34,8 @@ func main() {
 
 	server := newServer(configuration)
 	server.Run()
+
+	<- stop
+
+	log.Println("Shutting down the server...")
 }
