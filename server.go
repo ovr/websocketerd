@@ -130,10 +130,10 @@ func newServer(config *Configuration) *Server {
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
-	};
+	}
 
 	server := &Server{
-		clients: map[*Client]bool{},
+		clients:    map[*Client]bool{},
 		httpServer: httpServer,
 		redis: redis.NewClient(
 			&redis.Options{
@@ -156,37 +156,40 @@ func newServer(config *Configuration) *Server {
 		unregisterChannel: make(chan *Client, 1024),
 	}
 
-	httpServer.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/v1/ws/stats":
-			data, err := json.Marshal(server.Stats())
-			if err != nil {
-				log.Print(err)
-			} else {
-				w.Write(data)
-			}
-			break
-		case "/v1/ws/clients":
-			data, err := json.Marshal(server.Clients())
-			if err != nil {
-				log.Print(err)
-			} else {
-				w.Write(data)
-			}
-			break
-		case "/v1/ws/pubsub":
-			data, err := json.Marshal(server.PubSubChannels())
-			if err != nil {
-				log.Print(err)
-			} else {
-				w.Write(data)
-			}
-			break
-		default:
-			serveWs(config, server, w, r)
-			break
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/v1/ws/stats", func(w http.ResponseWriter, r *http.Request) {
+		data, err := json.Marshal(server.Stats())
+		if err != nil {
+			log.Print(err)
+		} else {
+			w.Write(data)
 		}
 	})
+
+	mux.HandleFunc("/v1/ws/clients", func(w http.ResponseWriter, r *http.Request) {
+		data, err := json.Marshal(server.Clients())
+		if err != nil {
+			log.Print(err)
+		} else {
+			w.Write(data)
+		}
+	})
+
+	mux.HandleFunc("/v1/ws/pubsub", func(w http.ResponseWriter, r *http.Request) {
+		data, err := json.Marshal(server.PubSubChannels())
+		if err != nil {
+			log.Print(err)
+		} else {
+			w.Write(data)
+		}
+	})
+
+	mux.HandleFunc("/v1/ws", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(config, server, w, r)
+	})
+
+	httpServer.Handler = mux
 
 	return server
 }
