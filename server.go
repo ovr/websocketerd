@@ -31,11 +31,13 @@ type Server struct {
 
 func (this *Server) Run() {
 	go this.Listen()
-	
-	err := this.httpServer.ListenAndServe()
-	if err != nil {
-		log.Panic("Cannot start HTTP Server", err)
-	}
+
+	go func () {
+		err := this.httpServer.ListenAndServe()
+		if err != nil {
+			log.Panic("Cannot start HTTP Server", err)
+		}
+	}()
 }
 
 func (this *Server) Listen() {
