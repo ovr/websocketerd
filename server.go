@@ -32,12 +32,13 @@ type Server struct {
 func (this *Server) Run() {
 	err := this.httpServer.ListenAndServe()
 	if err != nil {
-		log.Fatal("Cannot start HTTP Server", err)
-		panic(err)
+		log.Panic("Cannot start HTTP Server", err)
 	}
+
+	go this.Listen()
 }
 
-func (this *Server) RunHub() {
+func (this *Server) Listen() {
 	for {
 		select {
 		case client := <-this.registerChannel:
@@ -124,14 +125,16 @@ func newServer(config *Configuration) *Server {
 	db.DB().SetMaxIdleConns(config.DB.MaxIdleConnections)
 	db.DB().SetMaxOpenConns(config.DB.MaxOpenConnections)
 
+	httpServer := &http.Server{
+		Addr:           ":8484",
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	};
+
 	server := &Server{
 		clients: map[*Client]bool{},
-		httpServer: &http.Server{
-			Addr:           ":8484",
-			ReadTimeout:    10 * time.Second,
-			WriteTimeout:   10 * time.Second,
-			MaxHeaderBytes: 1 << 20,
-		},
+		httpServer: httpServer,
 		redis: redis.NewClient(
 			&redis.Options{
 				Addr:       config.Redis.Addr,
@@ -153,7 +156,7 @@ func newServer(config *Configuration) *Server {
 		unregisterChannel: make(chan *Client, 1024),
 	}
 
-	server.httpServer.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	httpServer.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v1/ws/stats":
 			data, err := json.Marshal(server.Stats())
@@ -184,8 +187,6 @@ func newServer(config *Configuration) *Server {
 			break
 		}
 	})
-
-	go server.RunHub()
 
 	return server
 }
