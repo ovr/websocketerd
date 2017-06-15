@@ -40,5 +40,6 @@ func main() {
 
 	log.Println("Shutting down the server...")
 
+	server.Shutdown()
 	app.Shutdown(10 * time.Second)
 }

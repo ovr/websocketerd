@@ -23,6 +23,12 @@ type Server struct {
 
 	db *gorm.DB
 
+	// Finish shutdown
+	done chan bool
+
+	// Shutdown server request
+	shutdownChannel chan bool
+
 	// Register requests from clients.
 	registerChannel chan *Client
 
@@ -41,15 +47,27 @@ func (this *Server) Run() {
 	}()
 }
 
+func (this *Server) Shutdown() {
+	// Don't accept new connections to hub
+	close(this.registerChannel)
+
+	this.shutdownChannel <- true
+
+	// w8th before shutdown request finish
+	<-this.done
+}
+
 func (this *Server) Listen() {
 	for {
 		select {
-		case client := <-this.registerChannel:
-			log.Print("[Event] Connection open")
+		case client, ok := <-this.registerChannel:
+			if ok {
+				log.Print("[Event] Connection open")
 
-			this.clients[client] = true
+				this.clients[client] = true
 
-			this.hub.Subscribe(client.GetDefaultPubChannel(), client)
+				this.hub.Subscribe(client.GetDefaultPubChannel(), client)
+			}
 		case client := <-this.unregisterChannel:
 			log.Print("[Event] Connection closed")
 
@@ -61,6 +79,20 @@ func (this *Server) Listen() {
 
 				close(client.sendChannel)
 			}
+		case <-this.shutdownChannel:
+			shutdownMsg, _ := json.Marshal(WebSocketNotification{
+				Type: "SERVER_SHUTDOWN",
+				Entity: map[string]interface{}{
+					"delay": "30000",
+				},
+			})
+
+			for client := range this.clients {
+				client.sendChannel <- shutdownMsg
+			}
+
+			log.Printf("Sending SERVER_SHUTDOWN to %d client(s)...\n", len(this.clients))
+			this.done <- true
 		}
 	}
 }
@@ -155,6 +187,8 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 			),
 		),
 		db:                db,
+		done:              make(chan bool),
+		shutdownChannel:   make(chan bool),
 		registerChannel:   make(chan *Client, 1024),
 		unregisterChannel: make(chan *Client, 1024),
 	}

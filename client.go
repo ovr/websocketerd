@@ -53,11 +53,6 @@ const (
 	maxMessageSize = 512
 )
 
-type WebSocketNotification struct {
-	Type   string
-	Entity interface{}
-}
-
 func (this *Client) GetDefaultPubChannel() string {
 	return "pubsub:user:" + this.tokenPayload.UserId.String()
 }

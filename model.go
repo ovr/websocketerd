@@ -1,8 +1,8 @@
 package main
 
 import (
-	"strconv"
 	"encoding/json"
+	"strconv"
 )
 
 type JSONMap map[string]interface{}
@@ -11,6 +11,11 @@ type AutoLoginToken struct {
 	UserId      json.Number
 	Token       string
 	BrowserHash string
+}
+
+type WebSocketNotification struct {
+	Type   string      `json:"type"`
+	Entity interface{} `json:"entity"`
 }
 
 type User struct {
@@ -31,7 +36,7 @@ func (this Thread) TableName() string {
 }
 
 type LoginToken struct {
-	UserId uint64
-	Token string
+	UserId  uint64
+	Token   string
 	Updated string
 }
