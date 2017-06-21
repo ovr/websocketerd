@@ -8,7 +8,6 @@ import (
 	"github.com/newrelic/go-agent"
 	"log"
 	"net/http"
-	"runtime"
 	"time"
 )
 
