@@ -16,7 +16,7 @@ type RedisHub struct {
 	channelsToClientsLock sync.RWMutex
 
 	clientsToChannels     ClientsToChannelsMap
-	clientsToChannelsLock sync.Mutex
+	clientsToChannelsLock sync.RWMutex
 }
 
 func NewRedisHub(client *redis.Client) HubInterface {
@@ -39,6 +39,9 @@ func (this RedisHub) GetChannels() ChannelsMapToClientsMap {
 }
 
 func (this RedisHub) GetChannelsForClient(client *Client) ChannelsMap {
+	this.clientsToChannelsLock.RLock();
+	defer this.clientsToChannelsLock.RUnlock();
+
 	if channels, ok := this.clientsToChannels[client]; ok {
 		return channels
 	}
