@@ -50,11 +50,23 @@ func (this RedisHub) GetChannelsForClient(client *Client) ChannelsMap {
 }
 
 func (this RedisHub) GetClientsCount() int {
-	return len(this.clientsToChannels);
+	this.clientsToChannelsLock.RLock()
+
+	result := len(this.clientsToChannels)
+
+	this.clientsToChannelsLock.RUnlock()
+
+	return result
 }
 
 func (this RedisHub) GetChannelsCount() int {
-	return len(this.channelsToClients);
+	this.channelsToClientsLock.RLock()
+
+	result := len(this.channelsToClients)
+
+	this.channelsToClientsLock.RUnlock()
+
+	return result
 }
 
 func (this RedisHub) Listen() {

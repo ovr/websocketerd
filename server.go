@@ -70,8 +70,6 @@ func (this *Server) Listen() {
 		case client := <-this.unregisterChannel:
 			log.Debugln("[Event] Connection closed")
 
-			log.Debugln("Client Removed")
-
 			this.hub.Unsubscribe(client)
 			this.clients.Delete(client)
 
