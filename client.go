@@ -60,7 +60,6 @@ func (this *Client) GetDefaultPubChannel() string {
 func (this *Client) readPump(server *Server) {
 	defer func() {
 		server.unregisterChannel <- this
-
 		this.conn.Close()
 	}()
 
@@ -101,11 +100,10 @@ func (this *Client) readPump(server *Server) {
 
 func (this *Client) writePump(server *Server) {
 	ticker := time.NewTicker(pingPeriod)
+
 	defer func() {
 		ticker.Stop()
 		this.conn.Close()
-
-		server.unregisterChannel <- this
 	}()
 
 	for {
