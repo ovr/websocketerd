@@ -1,5 +1,5 @@
 hash: 292e21f727aafdb06cd20221a5c0f8f4c682e7f87539285bc62af89c4d308ef1
-updated: 2017-06-21T09:46:07.90249758Z
+updated: 2017-06-21T10:10:37.981780953Z
 imports:
 - name: github.com/dgrijalva/jwt-go
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
@@ -29,4 +29,12 @@ imports:
   - internal/utilization
 - name: github.com/sirupsen/logrus
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
+- name: go4.org
+  version: 034d17a462f7b2dcd1a4a73553ec5357ff6e6c6e
+  subpackages:
+  - syncutil
+- name: golang.org/x/sys
+  version: fb4cac33e3196ff7f507ab9b2d2a44b0142f5b5a
+  subpackages:
+  - unix
 testImports: []
