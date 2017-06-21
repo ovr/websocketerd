@@ -30,7 +30,7 @@ RUN apt-get update \
     && curl https://glide.sh/get | sh \
     && glide install \
     && go install github.com/interpals/websocketerd \
-    && apt-get remove -y git curl \
+    && apt-get remove -y git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
