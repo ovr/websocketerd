@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"github.com/dgrijalva/jwt-go"
 	"encoding/json"
 	"github.com/gorilla/websocket"

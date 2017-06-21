@@ -8,12 +8,18 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	_ "net/http/pprof"
+	"net/http"
 )
 
 func main() {
 	var (
 		configFile string
 	)
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	flag.StringVar(&configFile, "config", "./config.json", "Config filepath")
 	flag.Parse()

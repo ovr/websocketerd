@@ -1,8 +1,8 @@
 package main
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/go-redis/redis"
-	"log"
 	"sync"
 )
 
@@ -59,7 +59,7 @@ func (this RedisHub) Listen() {
 		channel := this.pubSub.Channel()
 
 		for message := range channel {
-			log.Print(message)
+			log.Debugln(message)
 
 			this.channelsToClientsLock.RLock()
 
@@ -89,7 +89,7 @@ func (this RedisHub) Unsubscribe(client *Client) {
 				if len(this.channelsToClients[channel]) == 0 {
 					err := this.pubSub.Unsubscribe(channel)
 					if err != nil {
-						log.Printf("Redis Unsubscribe to %s err: %s", channel, err)
+						log.Errorln("Redis Unsubscribe to %s err: %s", channel, err)
 					}
 
 					delete(this.channelsToClients, channel)
@@ -99,14 +99,14 @@ func (this RedisHub) Unsubscribe(client *Client) {
 
 		delete(this.clientsToChannels, client)
 	} else {
-		log.Print("Cannot find a client from clientsToChannels map")
+		log.Warnln("Cannot find a client from clientsToChannels map")
 	}
 }
 
 func (this RedisHub) Subscribe(channel string, client *Client) {
 	err := this.pubSub.Subscribe(channel)
 	if err != nil {
-		log.Printf("Redis subscribe to %s err: %s", channel, err)
+		log.Errorln("Redis subscribe to %s err: %s", channel, err)
 	} else {
 		this.channelsToClientsLock.Lock()
 

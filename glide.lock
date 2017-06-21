@@ -1,10 +1,10 @@
-hash: 25645a88ceb28604f83cd790cffd4f4a0b946b3a72a3511c0bf786f6b0ab3e8e
-updated: 2017-06-14T07:06:30.664366318Z
+hash: 292e21f727aafdb06cd20221a5c0f8f4c682e7f87539285bc62af89c4d308ef1
+updated: 2017-06-21T09:46:07.90249758Z
 imports:
 - name: github.com/dgrijalva/jwt-go
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
 - name: github.com/go-redis/redis
-  version: 663bb76bcc3763c41877b63671003705a47289c5
+  version: e14976b254c5bc5f399dd0ae9314b1d02a176897
   subpackages:
   - internal
   - internal/consistenthash
@@ -27,4 +27,6 @@ imports:
   - internal/logger
   - internal/sysinfo
   - internal/utilization
+- name: github.com/sirupsen/logrus
+  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 testImports: []

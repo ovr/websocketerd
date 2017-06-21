@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -80,7 +80,7 @@ func (this *Client) readPump(server *Server) {
 		_, plainMessage, err := this.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("Error: %v", err)
+				log.Warnln("Error: %v", err)
 			}
 
 			break
@@ -92,7 +92,7 @@ func (this *Client) readPump(server *Server) {
 
 		err = json.Unmarshal(plainMessage, message)
 		if err != nil {
-			log.Print(err)
+			log.Warnln(err)
 
 			continue
 		}

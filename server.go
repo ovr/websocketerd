@@ -6,7 +6,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/newrelic/go-agent"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 )
@@ -61,17 +61,17 @@ func (this *Server) Listen() {
 		select {
 		case client, ok := <-this.registerChannel:
 			if ok {
-				log.Print("[Event] Connection open")
+				log.Debugln("[Event] Connection open")
 
 				this.clients[client] = true
 
 				this.hub.Subscribe(client.GetDefaultPubChannel(), client)
 			}
 		case client := <-this.unregisterChannel:
-			log.Print("[Event] Connection closed")
+			log.Debugln("[Event] Connection closed")
 
 			if _, ok := this.clients[client]; ok {
-				log.Print("Client Removed")
+				log.Debugln("Client Removed")
 
 				this.hub.Unsubscribe(client)
 				delete(this.clients, client)
@@ -90,7 +90,7 @@ func (this *Server) Listen() {
 				client.sendChannel <- shutdownMsg
 			}
 
-			log.Printf("Sending SERVER_SHUTDOWN to %d client(s)...\n", len(this.clients))
+			log.Debugln("Sending SERVER_SHUTDOWN to %d client(s)...\n", len(this.clients))
 			this.done <- true
 		}
 	}
