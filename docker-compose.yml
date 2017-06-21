@@ -12,6 +12,7 @@ services:
       - "8484:8484"
     network_mode: host
     restart: always
+    mem_limit: 512m
     ulimits:
       nproc: 65535
       nofile:
