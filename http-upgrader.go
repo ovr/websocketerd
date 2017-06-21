@@ -41,7 +41,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		}
 
 		row := LoginToken{}
-		notFound := server.db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).First(&row).RecordNotFound()
+		notFound := server.db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).Find(&row).RecordNotFound()
 
 		if notFound {
 			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
@@ -97,7 +97,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	var user *User = new(User)
 
-	if server.db.First(user, tokenPayload.UserId.String()).RecordNotFound() {
+	if server.db.Find(user, tokenPayload.UserId.String()).RecordNotFound() {
 		http.Error(w, "StatusForbidden", http.StatusForbidden)
 		return
 	}
