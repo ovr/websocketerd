@@ -98,17 +98,8 @@ func (this *Server) Listen() {
 }
 
 func (this *Server) Stats() JSONMap {
-	var mem runtime.MemStats
-	runtime.ReadMemStats(&mem)
-
 	return JSONMap{
 		"connections": len(this.clients),
-		"memory": JSONMap{
-			"alloc":       mem.Alloc,
-			"total-alloc": mem.TotalAlloc,
-			"heap-alloc":  mem.HeapAlloc,
-			"heap-sys":    mem.HeapSys,
-		},
 		"pubsub": JSONMap{
 			"channels": this.hub.GetChannelsCount(),
 			"clients":  this.hub.GetClientsCount(),
