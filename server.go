@@ -12,7 +12,7 @@ import (
 )
 
 type Server struct {
-	clients map[*Client]bool
+	clients *ClientsConcurrentMap
 
 	httpServer *http.Server
 
@@ -63,21 +63,19 @@ func (this *Server) Listen() {
 			if ok {
 				log.Debugln("[Event] Connection open")
 
-				this.clients[client] = true
+				this.clients.Add(client)
 
 				this.hub.Subscribe(client.GetDefaultPubChannel(), client)
 			}
 		case client := <-this.unregisterChannel:
 			log.Debugln("[Event] Connection closed")
 
-			if _, ok := this.clients[client]; ok {
-				log.Debugln("Client Removed")
+			log.Debugln("Client Removed")
 
-				this.hub.Unsubscribe(client)
-				delete(this.clients, client)
+			this.hub.Unsubscribe(client)
+			this.clients.Delete(client)
 
-				close(client.sendChannel)
-			}
+			close(client.sendChannel)
 		case <-this.shutdownChannel:
 			shutdownMsg, _ := json.Marshal(WebSocketNotification{
 				Type: "SERVER_SHUTDOWN",
@@ -86,11 +84,11 @@ func (this *Server) Listen() {
 				},
 			})
 
-			for client := range this.clients {
+			for client := range this.clients.All() {
 				client.sendChannel <- shutdownMsg
 			}
 
-			log.Debugln("Sending SERVER_SHUTDOWN to %d client(s)...\n", len(this.clients))
+			log.Debugln("Sending SERVER_SHUTDOWN to %d client(s)...\n", this.clients.Len())
 			this.done <- true
 		}
 	}
@@ -98,7 +96,7 @@ func (this *Server) Listen() {
 
 func (this *Server) Stats() JSONMap {
 	return JSONMap{
-		"connections": len(this.clients),
+		"connections": this.clients.Len(),
 		"pubsub": JSONMap{
 			"channels": this.hub.GetChannelsCount(),
 			"clients":  this.hub.GetClientsCount(),
@@ -109,7 +107,7 @@ func (this *Server) Stats() JSONMap {
 func (this *Server) Clients() []JSONMap {
 	clients := []JSONMap{}
 
-	for client := range this.clients {
+	for client := range this.clients.All() {
 		clientMap := JSONMap{
 			"uid":      client.tokenPayload.UserId.String(),
 			"jti":      client.tokenPayload.TokenId,
@@ -158,7 +156,7 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 	}
 
 	server := &Server{
-		clients:    map[*Client]bool{},
+		clients:    NewClientsConcurrentMap(),
 		httpServer: httpServer,
 		redis: redis.NewClient(
 			&redis.Options{
