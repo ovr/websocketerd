@@ -13,7 +13,7 @@ type RedisHub struct {
 	pubSub     *redis.PubSub
 
 	channelsToClients     ChannelsMapToClientsMap
-	channelsToClientsLock sync.Mutex
+	channelsToClientsLock sync.RWMutex
 
 	clientsToChannels     ClientsToChannelsMap
 	clientsToChannelsLock sync.Mutex
@@ -61,7 +61,7 @@ func (this RedisHub) Listen() {
 		for message := range channel {
 			log.Print(message)
 
-			this.channelsToClientsLock.Lock()
+			this.channelsToClientsLock.RLock()
 
 			if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
 				for client := range clientsMap {
@@ -69,7 +69,7 @@ func (this RedisHub) Listen() {
 				}
 			}
 
-			this.channelsToClientsLock.Unlock()
+			this.channelsToClientsLock.RUnlock()
 		}
 	}
 }
@@ -81,7 +81,7 @@ func (this RedisHub) Unsubscribe(client *Client) {
 	if channels, ok := this.clientsToChannels[client]; ok {
 		this.channelsToClientsLock.Lock()
 		defer this.channelsToClientsLock.Unlock()
-		
+
 		for channel := range channels {
 			if _, ok := this.channelsToClients[channel]; ok {
 				delete(this.channelsToClients[channel], client)
