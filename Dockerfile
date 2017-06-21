@@ -2,6 +2,9 @@ FROM golang:1.8.3
 
 MAINTAINER Patsura Dmitry <talk@dmtry.me>
 
+HEALTHCHECK --interval=1m --timeout=3s \
+  CMD curl -f http://localhost:8484/v1/ws/stats || exit 1
+
 ENV PATH /go/bin:/usr/local/go/bin:$PATH
 ENV GOPATH /go
 
