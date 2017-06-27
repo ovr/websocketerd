@@ -23,11 +23,16 @@ type DataBaseConfiguration struct {
 	Limit              uint16 `json:"limit"`
 }
 
+type NewRelicConfig struct {
+	AppName string `json:"appname"`
+	Key     string `json:"key"`
+}
+
 type Configuration struct {
-	NewRelicLicenseKey string                `json:"newrelic_license_key"`
-	JWTSecret          string                `json:"jwt_secret"`
-	Redis              RedisConfiguration    `json:"redis"`
-	DB                 DataBaseConfiguration `json:"db"`
+	NewRelic  NewRelicConfig        `json:"newrelic"`
+	JWTSecret string                `json:"jwt_secret"`
+	Redis     RedisConfiguration    `json:"redis"`
+	DB        DataBaseConfiguration `json:"db"`
 }
 
 func (this *Configuration) Init(configFile string) {

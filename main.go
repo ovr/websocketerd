@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/newrelic/go-agent"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"time"
-	_ "net/http/pprof"
-	"net/http"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt)
 
 	app, err := newrelic.NewApplication(
-		newrelic.NewConfig("WebSocketerD", configuration.NewRelicLicenseKey),
+		newrelic.NewConfig(configuration.NewRelic.AppName, configuration.NewRelic.Key),
 	)
 
 	if err != nil {
