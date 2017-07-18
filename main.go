@@ -4,9 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/newrelic/go-agent"
-	"log"
-	"net/http"
-	_ "net/http/pprof"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"time"
@@ -17,18 +15,17 @@ func main() {
 		configFile string
 	)
 
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	flag.StringVar(&configFile, "config", "./config.json", "Config filepath")
 	flag.Parse()
 
 	configuration := &Configuration{}
 	configuration.Init(configFile)
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	log.SetFormatter(&log.JSONFormatter{})
+
+	if configuration.Debug {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	app, err := newrelic.NewApplication(
 		newrelic.NewConfig(configuration.NewRelic.AppName, configuration.NewRelic.Key),
@@ -38,6 +35,9 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
 
 	server := newServer(configuration, app)
 	server.Run()
