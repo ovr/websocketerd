@@ -36,6 +36,7 @@ type Server struct {
 }
 
 func (this *Server) Run() {
+	go this.hub.Listen()
 	go this.Listen()
 
 	go func() {

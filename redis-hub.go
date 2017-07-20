@@ -22,16 +22,12 @@ type RedisHub struct {
 func NewRedisHub(client *redis.Client) HubInterface {
 	pubSub := client.Subscribe("controller")
 
-	hub := RedisHub{
+	return RedisHub{
 		connection:        client,
 		pubSub:            pubSub,
 		channelsToClients: ChannelsMapToClientsMap{},
 		clientsToChannels: ClientsToChannelsMap{},
 	}
-
-	go hub.Listen()
-
-	return hub
 }
 
 func (this RedisHub) GetChannels() ChannelsMapToClientsMap {
