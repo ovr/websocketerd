@@ -1,8 +1,8 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -35,12 +35,12 @@ func NewRedisHub(client *redis.Client) HubInterface {
 }
 
 func (this RedisHub) GetChannels() ChannelsMapToClientsMap {
-	return this.channelsToClients;
+	return this.channelsToClients
 }
 
 func (this RedisHub) GetChannelsForClient(client *Client) ChannelsMap {
-	this.clientsToChannelsLock.RLock();
-	defer this.clientsToChannelsLock.RUnlock();
+	this.clientsToChannelsLock.RLock()
+	defer this.clientsToChannelsLock.RUnlock()
 
 	if channels, ok := this.clientsToChannels[client]; ok {
 		return channels
@@ -70,6 +70,8 @@ func (this RedisHub) GetChannelsCount() int {
 }
 
 func (this RedisHub) Listen() {
+	log.Debugln("listen")
+
 	for {
 		channel := this.pubSub.Channel()
 

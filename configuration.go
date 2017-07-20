@@ -19,8 +19,6 @@ type DataBaseConfiguration struct {
 	MaxIdleConnections int    `json:"max-idle-connections"`
 	MaxOpenConnections int    `json:"max-open-connections"`
 	ShowLog            bool   `json:"log"`
-	Threads            uint8  `json:"threads"`
-	Limit              uint16 `json:"limit"`
 }
 
 type NewRelicConfig struct {
@@ -33,6 +31,7 @@ type Configuration struct {
 	JWTSecret string                `json:"jwt_secret"`
 	Redis     RedisConfiguration    `json:"redis"`
 	DB        DataBaseConfiguration `json:"db"`
+	Debug     bool                  `json:"debug"`
 }
 
 func (this *Configuration) Init(configFile string) {
