@@ -82,9 +82,9 @@ func (this *Server) Listen() {
 				},
 			})
 
-			for client := range this.clients.All() {
+			this.clients.Map(func(client *Client) {
 				client.sendChannel <- shutdownMsg
-			}
+			})
 
 			log.Debugln("Sending SERVER_SHUTDOWN to %d client(s)...\n", this.clients.Len())
 			this.done <- true
@@ -105,7 +105,7 @@ func (this *Server) Stats() JSONMap {
 func (this *Server) Clients() []JSONMap {
 	clients := []JSONMap{}
 
-	for client := range this.clients.All() {
+	this.clients.Map(func(client *Client) {
 		clientMap := JSONMap{
 			"uid":      client.tokenPayload.UserId.String(),
 			"jti":      client.tokenPayload.TokenId,
@@ -114,7 +114,7 @@ func (this *Server) Clients() []JSONMap {
 		}
 
 		clients = append(clients, clientMap)
-	}
+	})
 
 	return clients
 }
