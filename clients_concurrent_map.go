@@ -26,11 +26,11 @@ func (this *ClientsConcurrentMap) Len() int {
 func (this *ClientsConcurrentMap) Get(client *Client) bool {
 	this.lock.RLock()
 
-	value := this.m[client]
+	_, ok := this.m[client]
 
 	this.lock.RUnlock()
 
-	return value
+	return ok
 }
 
 func (this *ClientsConcurrentMap) Add(client *Client) {
@@ -49,12 +49,17 @@ func (this *ClientsConcurrentMap) Delete(client *Client) {
 	this.lock.Unlock()
 }
 
-func (this *ClientsConcurrentMap) All() ClientsMap {
+func (this *ClientsConcurrentMap) Map(f func(client *Client)) {
 	this.lock.RLock()
 
-	result := this.m
+	clients := make([]*Client, 0, len(this.m))
+	for k := range this.m {
+		clients = append(clients, k)
+	}
 
 	this.lock.RUnlock()
 
-	return result
+	for _, client := range clients {
+		f(client)
+	}
 }
