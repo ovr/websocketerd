@@ -16,8 +16,6 @@ type Server struct {
 
 	httpServer *http.Server
 
-	redis *redis.Client
-
 	hub HubInterface
 
 	db *gorm.DB
@@ -157,13 +155,6 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 	server := &Server{
 		clients:    NewClientsConcurrentMap(),
 		httpServer: httpServer,
-		redis: redis.NewClient(
-			&redis.Options{
-				Addr:       config.Redis.Addr,
-				PoolSize:   config.Redis.PoolSize,
-				MaxRetries: config.Redis.MaxRetries,
-			},
-		),
 		hub: NewRedisHub(
 			redis.NewClient(
 				&redis.Options{
