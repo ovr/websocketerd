@@ -3,8 +3,12 @@ package main
 import (
 	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
+
+type SubscriptionRequest struct {
+	channel string
+	client  *Client
+}
 
 type RedisHub struct {
 	HubInterface
@@ -12,21 +16,24 @@ type RedisHub struct {
 	connection *redis.Client
 	pubSub     *redis.PubSub
 
-	channelsToClients     ChannelsMapToClientsMap
-	channelsToClientsLock sync.RWMutex
+	channelsToClients ChannelsMapToClientsMap
 
-	clientsToChannels     ClientsToChannelsMap
-	clientsToChannelsLock sync.RWMutex
+	clientsToChannels ClientsToChannelsMap
+
+	newSubscriptions   chan SubscriptionRequest
+	newUnsubscriptions chan *Client
 }
 
 func NewRedisHub(client *redis.Client) HubInterface {
 	pubSub := client.Subscribe("controller")
 
 	return RedisHub{
-		connection:        client,
-		pubSub:            pubSub,
-		channelsToClients: ChannelsMapToClientsMap{},
-		clientsToChannels: ClientsToChannelsMap{},
+		connection:         client,
+		pubSub:             pubSub,
+		channelsToClients:  ChannelsMapToClientsMap{},
+		clientsToChannels:  ClientsToChannelsMap{},
+		newSubscriptions:   make(chan SubscriptionRequest, 1000),
+		newUnsubscriptions: make(chan *Client, 1000),
 	}
 }
 
@@ -35,9 +42,6 @@ func (this RedisHub) GetChannels() ChannelsMapToClientsMap {
 }
 
 func (this RedisHub) GetChannelsForClient(client *Client) ChannelsMap {
-	this.clientsToChannelsLock.RLock()
-	defer this.clientsToChannelsLock.RUnlock()
-
 	if channels, ok := this.clientsToChannels[client]; ok {
 		return channels
 	}
@@ -46,55 +50,45 @@ func (this RedisHub) GetChannelsForClient(client *Client) ChannelsMap {
 }
 
 func (this RedisHub) GetClientsCount() int {
-	this.clientsToChannelsLock.RLock()
-
-	result := len(this.clientsToChannels)
-
-	this.clientsToChannelsLock.RUnlock()
-
-	return result
+	return len(this.clientsToChannels)
 }
 
 func (this RedisHub) GetChannelsCount() int {
-	this.channelsToClientsLock.RLock()
-
-	result := len(this.channelsToClients)
-
-	this.channelsToClientsLock.RUnlock()
-
-	return result
+	return len(this.channelsToClients)
 }
 
 func (this RedisHub) Listen() {
 	log.Debugln("listen")
 
+	pubSubChannel := this.pubSub.Channel()
+
 	for {
-		channel := this.pubSub.Channel()
+		log.Print("test")
 
-		for message := range channel {
-			log.Debugln(message)
-
-			this.channelsToClientsLock.RLock()
-
-			if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
-				for client := range clientsMap {
-					client.sendChannel <- []byte(message.Payload)
-				}
-			}
-
-			this.channelsToClientsLock.RUnlock()
+		select {
+		case subscribeRequest := <-this.newSubscriptions:
+			log.Print(subscribeRequest.client, subscribeRequest.channel)
+			this.handleSubscribe(subscribeRequest.client, subscribeRequest.channel)
+		case client := <-this.newUnsubscriptions:
+			this.handleUnsubscribe(client)
+		case message := <-pubSubChannel:
+			this.handleMessage(message)
 		}
 	}
 }
 
-func (this RedisHub) Unsubscribe(client *Client) {
-	this.clientsToChannelsLock.Lock()
-	defer this.clientsToChannelsLock.Unlock()
+func (this RedisHub) handleMessage(message *redis.Message) {
+	log.Print(message)
 
+	if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
+		for client := range clientsMap {
+			client.sendChannel <- []byte(message.Payload)
+		}
+	}
+}
+
+func (this RedisHub) handleUnsubscribe(client *Client) {
 	if channels, ok := this.clientsToChannels[client]; ok {
-		this.channelsToClientsLock.Lock()
-		defer this.channelsToClientsLock.Unlock()
-
 		for channel := range channels {
 			if _, ok := this.channelsToClients[channel]; ok {
 				delete(this.channelsToClients[channel], client)
@@ -116,13 +110,15 @@ func (this RedisHub) Unsubscribe(client *Client) {
 	}
 }
 
-func (this RedisHub) Subscribe(channel string, client *Client) {
+func (this RedisHub) Unsubscribe(client *Client) {
+	this.newUnsubscriptions <- client
+}
+
+func (this RedisHub) handleSubscribe(client *Client, channel string) {
 	err := this.pubSub.Subscribe(channel)
 	if err != nil {
 		log.Errorln("Redis subscribe to %s err: %s", channel, err)
 	} else {
-		this.channelsToClientsLock.Lock()
-
 		if channelClients, ok := this.channelsToClients[channel]; ok {
 			channelClients[client] = true
 		} else {
@@ -132,10 +128,6 @@ func (this RedisHub) Subscribe(channel string, client *Client) {
 			this.channelsToClients[channel] = clients
 		}
 
-		this.channelsToClientsLock.Unlock()
-
-		this.clientsToChannelsLock.Lock()
-
 		if clientChannels, ok := this.clientsToChannels[client]; ok {
 			clientChannels[channel] = true
 		} else {
@@ -144,7 +136,12 @@ func (this RedisHub) Subscribe(channel string, client *Client) {
 
 			this.clientsToChannels[client] = channels
 		}
+	}
+}
 
-		this.clientsToChannelsLock.Unlock()
+func (this RedisHub) Subscribe(channel string, client *Client) {
+	this.newSubscriptions <- SubscriptionRequest{
+		channel: channel,
+		client:  client,
 	}
 }

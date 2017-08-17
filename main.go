@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
-	"time"
 )
 
 func main() {
@@ -44,8 +43,8 @@ func main() {
 
 	<-stop
 
-	log.Println("Shutting down the server...")
-
-	server.Shutdown()
-	app.Shutdown(10 * time.Second)
+	//log.Println("Shutting down the server...")
+	//
+	//server.Shutdown()
+	//app.Shutdown(10 * time.Second)
 }
