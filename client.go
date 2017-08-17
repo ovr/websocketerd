@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -96,6 +97,16 @@ func (this *Client) readPump(server *Server) {
 			continue
 		}
 	}
+}
+
+func (this *Client) Send(message []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in Send", r)
+		}
+	}()
+
+	this.sendChannel <- message
 }
 
 func (this *Client) writePump(server *Server) {

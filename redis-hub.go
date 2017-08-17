@@ -82,7 +82,7 @@ func (this RedisHub) handleMessage(message *redis.Message) {
 
 	if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
 		for client := range clientsMap {
-			client.sendChannel <- []byte(message.Payload)
+			client.Send([]byte(message.Payload))
 		}
 	}
 }
