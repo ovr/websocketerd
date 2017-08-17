@@ -1,11 +1,11 @@
 package main
 
 import (
-	"net/http"
-	log "github.com/sirupsen/logrus"
-	"github.com/dgrijalva/jwt-go"
 	"encoding/json"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 var upgrader = websocket.Upgrader{
@@ -102,7 +102,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		return
 	}
 
-	log.Print("[Event] New connection")
+	log.Debugln("[Event] New connection")
 
 	client := NewClient(conn, tokenPayload, user, r.Header.Get("User-Agent"))
 	server.registerChannel <- client
