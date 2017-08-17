@@ -98,6 +98,16 @@ func (this *Client) readPump(server *Server) {
 	}
 }
 
+func (this *Client) Send(message []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Recovered in Send", r)
+		}
+	}()
+
+	this.sendChannel <- message
+}
+
 func (this *Client) writePump(server *Server) {
 	ticker := time.NewTicker(pingPeriod)
 
