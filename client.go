@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 	"time"
 )
 
@@ -14,21 +15,18 @@ type Client struct {
 
 	sendChannel chan []byte
 
-	tokenPayload TokenPayload
-
 	user *User
 
 	// HTTP Header "User-Agent"
 	agent string
 }
 
-func NewClient(conn *websocket.Conn, tokenPayload TokenPayload, user *User, agent string) *Client {
+func NewClient(conn *websocket.Conn, user *User, agent string) *Client {
 	client := &Client{
-		conn:         conn,
-		sendChannel:  make(chan []byte, 256),
-		tokenPayload: tokenPayload,
-		user:         user,
-		agent:        agent,
+		conn:        conn,
+		sendChannel: make(chan []byte, 256),
+		user:        user,
+		agent:       agent,
 	}
 
 	return client
@@ -54,7 +52,7 @@ const (
 )
 
 func (this *Client) GetDefaultPubChannel() string {
-	return "pubsub:user:" + this.tokenPayload.UserId.String()
+	return "pubsub:user:" + strconv.FormatUint(this.user.Id, 10)
 }
 
 func (this *Client) readPump(server *Server) {
@@ -138,9 +136,4 @@ func (this *Client) writePump(server *Server) {
 			}
 		}
 	}
-}
-
-type TokenPayload struct {
-	UserId  json.Number
-	TokenId json.Number
 }

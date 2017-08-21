@@ -26,7 +26,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		}
 	}()
 
-	var tokenPayload TokenPayload
+	var userId json.Number
 
 	lt, err := r.Cookie("lt")
 	if err == nil {
@@ -36,9 +36,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 			return
 		}
 
-		tokenPayload = TokenPayload{
-			UserId: autologinToken.UserId,
-		}
+		userId = autologinToken.UserId
 
 		row := LoginToken{}
 		notFound := server.db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).Find(&row).RecordNotFound()
@@ -77,10 +75,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			tokenPayload = TokenPayload{
-				UserId:  claims["uid"].(json.Number),
-				TokenId: claims["jti"].(json.Number),
-			}
+			userId = claims["jti"].(json.Number)
 		} else {
 			http.Error(w, "StatusForbidden", http.StatusForbidden)
 			return
@@ -97,14 +92,14 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	var user *User = new(User)
 
-	if server.db.Find(user, tokenPayload.UserId.String()).RecordNotFound() {
+	if server.db.Find(user, userId.String()).RecordNotFound() {
 		http.Error(w, "StatusForbidden", http.StatusForbidden)
 		return
 	}
 
 	log.Debugln("[Event] New connection")
 
-	client := NewClient(conn, tokenPayload, user, r.Header.Get("User-Agent"))
+	client := NewClient(conn, user, r.Header.Get("User-Agent"))
 	server.registerChannel <- client
 
 	// exit from HTTP goroutine, now http server can free unneeded things

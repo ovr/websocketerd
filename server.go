@@ -8,6 +8,7 @@ import (
 	"github.com/newrelic/go-agent"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -106,8 +107,7 @@ func (this *Server) Clients() []JSONMap {
 
 	this.clients.Map(func(client *Client) {
 		clientMap := JSONMap{
-			"uid":      client.tokenPayload.UserId.String(),
-			"jti":      client.tokenPayload.TokenId,
+			"uid":      strconv.FormatUint(client.user.Id, 10),
 			"agent":    client.agent,
 			"channels": this.hub.GetChannelsForClient(client),
 		}
