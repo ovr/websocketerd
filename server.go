@@ -82,7 +82,7 @@ func (this *Server) Listen() {
 			})
 
 			this.clients.Map(func(client *Client) {
-				client.sendChannel <- shutdownMsg
+				client.Send(shutdownMsg)
 			})
 
 			log.Debugln("Sending SERVER_SHUTDOWN to %d client(s)...\n", this.clients.Len())
