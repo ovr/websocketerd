@@ -55,6 +55,32 @@ func (this *Client) GetDefaultPubChannel() string {
 	return "pubsub:user:" + strconv.FormatUint(this.user.Id, 10)
 }
 
+func (this *Client) WriteRPCResponseError(request *RPCRequest, result JSONMap) {
+	response, err := json.Marshal(RPCResponseError{
+		Id:    request.Id,
+		Error: result,
+	})
+
+	if err == nil {
+		this.Send(response)
+	} else {
+		log.Warningln(err)
+	}
+}
+
+func (this *Client) WriteRPCResponse(request *RPCRequest, result JSONMap) {
+	response, err := json.Marshal(RPCResponse{
+		Id:     request.Id,
+		Result: result,
+	})
+
+	if err == nil {
+		this.Send(response)
+	} else {
+		log.Warningln(err)
+	}
+}
+
 func (this *Client) readPump(server *Server) {
 	defer func() {
 		server.unregisterChannel <- this
@@ -85,13 +111,38 @@ func (this *Client) readPump(server *Server) {
 
 		plainMessage = bytes.TrimSpace(bytes.Replace(plainMessage, newline, space, -1))
 
-		message := &WebSocketNotification{}
+		request := &RPCRequest{}
 
-		err = json.Unmarshal(plainMessage, message)
+		err = json.Unmarshal(plainMessage, request)
 		if err != nil {
 			log.Warnln(err)
 
 			continue
+		} else {
+			response, err := json.Marshal(RPCFatalError{
+				Error: JSONMap{
+					"msg": "Cannot decode RPC request",
+				},
+			})
+
+			if err == nil {
+				this.Send(response)
+			} else {
+				log.Warningln(err)
+			}
+		}
+
+		switch request.Method {
+		case "subscribe":
+			server.hub.Subscribe(request.Parameters[0], this)
+
+			this.WriteRPCResponse(request, JSONMap{})
+			break
+		default:
+			this.WriteRPCResponseError(request, JSONMap{
+				"message": "Unsuppoted method",
+			})
+			break
 		}
 	}
 }
