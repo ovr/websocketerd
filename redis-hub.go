@@ -74,15 +74,18 @@ func (this RedisHub) Listen() {
 		for message := range channel {
 			log.Debugln(message)
 
-			this.channelsToClientsLock.RLock()
+			this.PublishMessage(message.Channel, message.Payload)
+		}
+	}
+}
 
-			if clientsMap, ok := this.channelsToClients[message.Channel]; ok {
-				for client := range clientsMap {
-					client.Send([]byte(message.Payload))
-				}
-			}
+func (this RedisHub) PublishMessage(channel string, payload string) {
+	this.channelsToClientsLock.RLock()
+	defer this.channelsToClientsLock.RUnlock()
 
-			this.channelsToClientsLock.RUnlock()
+	if clientsMap, ok := this.channelsToClients[channel]; ok {
+		for client := range clientsMap {
+			client.Send([]byte(payload))
 		}
 	}
 }
