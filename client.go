@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -98,27 +97,17 @@ func (this *Client) readPump(server *Server) {
 	)
 
 	for {
-		var err error
+		request := &RPCRequest{}
 
-		_, plainMessage, err := this.conn.ReadMessage()
+		err := this.conn.ReadJSON(request)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Warnln("Error: %v", err)
+
+				// exit from connection
+				break
 			}
 
-			break
-		}
-
-		plainMessage = bytes.TrimSpace(bytes.Replace(plainMessage, newline, space, -1))
-
-		request := &RPCRequest{}
-
-		err = json.Unmarshal(plainMessage, request)
-		if err != nil {
-			log.Warnln(err)
-
-			continue
-		} else {
 			response, err := json.Marshal(RPCFatalError{
 				Error: JSONMap{
 					"msg": "Cannot decode RPC request",
@@ -134,13 +123,20 @@ func (this *Client) readPump(server *Server) {
 
 		switch request.Method {
 		case "subscribe":
+			if len(request.Parameters[0]) < 32 {
+				this.WriteRPCResponseError(request, JSONMap{
+					"msg": "The length of channel name cannot be < 32",
+				})
+				continue
+			}
+
 			server.hub.Subscribe(request.Parameters[0], this)
 
 			this.WriteRPCResponse(request, JSONMap{})
 			break
 		default:
 			this.WriteRPCResponseError(request, JSONMap{
-				"message": "Unsuppoted method",
+				"message": "Unsupported method",
 			})
 			break
 		}
