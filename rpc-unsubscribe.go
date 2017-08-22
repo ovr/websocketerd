@@ -12,10 +12,14 @@ func (this RPCUnsubscribeHandler) MethodName() string {
 	return "unsubscribe"
 }
 
-func (this RPCUnsubscribeHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
-	if len(request.Parameters) != 1 {
-		return nil, errors.New("Required parameters: [channel]")
+func (this RPCUnsubscribeHandler) Parameters() []RPCParameter {
+	return []RPCParameter{
+		{
+			Name: "channel",
+		},
 	}
+}
 
+func (this RPCUnsubscribeHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
 	return nil, errors.New("Unimplemented")
 }

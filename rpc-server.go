@@ -1,11 +1,19 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
+
+type RPCParameter struct {
+	Name string
+}
 
 type Handler interface {
 	MethodName() string
+
+	Parameters() []RPCParameter
 
 	Handle(request *RPCRequest, client *Client) (*JSONMap, error)
 }
@@ -35,6 +43,20 @@ func (this *RPCServer) Handle(request *RPCRequest, client *Client) {
 	}()
 
 	if handler, ok := this.handlers[request.Method]; ok {
+		if len(handler.Parameters()) != len(request.Parameters) {
+			client.WriteRPCResponseError(
+				request,
+				JSONMap{
+					"message": fmt.Sprintf(
+						"Required parameters: [%s]",
+						strings.Join(ParametersNames(handler.Parameters()), ", "),
+					),
+				},
+			)
+
+			return
+		}
+
 		result, err := handler.Handle(request, client)
 		if err != nil {
 			client.WriteRPCResponseError(
@@ -64,4 +86,14 @@ func NewRPCServer() *RPCServer {
 	return &RPCServer{
 		handlers: HandlersMap{},
 	}
+}
+
+func ParametersNames(parameters []RPCParameter) []string {
+	result := make([]string, len(parameters))
+
+	for index, parameter := range parameters {
+		result[index] = parameter.Name
+	}
+
+	return result
 }
