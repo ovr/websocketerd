@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
+	rpc "github.com/interpals/websocketerd/rpc"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
@@ -54,8 +55,8 @@ func (this *Client) GetDefaultPubChannel() string {
 	return "pubsub:user:" + strconv.FormatUint(this.user.Id, 10)
 }
 
-func (this *Client) WriteRPCResponseError(request *RPCRequest, result JSONMap) {
-	response, err := json.Marshal(RPCResponseError{
+func (this *Client) WriteRPCResponseError(request *rpc.RPCRequest, result JSONMap) {
+	response, err := json.Marshal(rpc.RPCResponseError{
 		Id:    request.Id,
 		Error: result,
 	})
@@ -67,8 +68,8 @@ func (this *Client) WriteRPCResponseError(request *RPCRequest, result JSONMap) {
 	}
 }
 
-func (this *Client) WriteRPCResponse(request *RPCRequest, result JSONMap) {
-	response, err := json.Marshal(RPCResponse{
+func (this *Client) WriteRPCResponse(request *rpc.RPCRequest, result JSONMap) {
+	response, err := json.Marshal(rpc.RPCResponse{
 		Id:     request.Id,
 		Result: result,
 	})
@@ -97,7 +98,7 @@ func (this *Client) readPump(server *Server) {
 	)
 
 	for {
-		request := &RPCRequest{}
+		request := &rpc.RPCRequest{}
 
 		err := this.conn.ReadJSON(request)
 		if err != nil {
@@ -108,7 +109,7 @@ func (this *Client) readPump(server *Server) {
 				break
 			}
 
-			response, err := json.Marshal(RPCFatalError{
+			response, err := json.Marshal(rpc.RPCFatalError{
 				Error: JSONMap{
 					"msg": "Cannot decode RPC request",
 				},
