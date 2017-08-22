@@ -55,26 +55,28 @@ func (this *Client) GetDefaultPubChannel() string {
 }
 
 func (this *Client) WriteRPCResponseError(request *RPCRequest, result JSONMap) {
-	response, err := json.Marshal(RPCResponseError{
-		Id:    request.Id,
-		Error: result,
-	})
-
-	if err == nil {
-		this.Send(response)
-	} else {
-		log.Warningln(err)
-	}
+	this.WriteRPC(
+		RPCResponseError{
+			Id:    request.Id,
+			Error: result,
+		},
+	)
 }
 
 func (this *Client) WriteRPCResponse(request *RPCRequest, result JSONMap) {
-	response, err := json.Marshal(RPCResponse{
-		Id:     request.Id,
-		Result: result,
-	})
+	this.WriteRPC(
+		RPCResponse{
+			Id:     request.Id,
+			Result: result,
+		},
+	)
+}
+
+func (this *Client) WriteRPC(response interface{}) {
+	r, err := json.Marshal(response)
 
 	if err == nil {
-		this.Send(response)
+		this.Send(r)
 	} else {
 		log.Warningln(err)
 	}
@@ -116,22 +118,30 @@ func (this *Client) readPump(server *Server) {
 				break
 			}
 
-			response, err := json.Marshal(RPCFatalError{
-				Error: JSONMap{
-					"msg": "Cannot decode RPC request",
+			this.WriteRPC(
+				RPCFatalError{
+					Error: JSONMap{
+						"message": "Cannot decode RPC request",
+					},
 				},
-			})
-
-			if err == nil {
-				this.Send(response)
-			} else {
-				log.Warningln(err)
-			}
+			)
 
 			continue
 		}
 
-		server.rpc.Handle(request, this)
+		if request.Id == "" {
+			this.WriteRPC(
+				RPCFatalError{
+					Error: JSONMap{
+						"message": "Id is a required field",
+					},
+				},
+			)
+
+			continue
+		}
+
+		go server.rpc.Handle(request, this)
 	}
 }
 
