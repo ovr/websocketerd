@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
+	rpc "github.com/interpals/websocketerd/rpc"
 	"github.com/jinzhu/gorm"
 	"github.com/newrelic/go-agent"
 	log "github.com/sirupsen/logrus"
@@ -16,6 +17,8 @@ type Server struct {
 	clients *ClientsConcurrentMap
 
 	httpServer *http.Server
+
+	rpc *rpc.Server
 
 	hub HubInterface
 
@@ -164,12 +167,21 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 				},
 			),
 		),
+		rpc:               rpc.NewServer(),
 		db:                db,
 		done:              make(chan bool),
 		shutdownChannel:   make(chan bool),
-		registerChannel:   make(chan *Client, 1024),
-		unregisterChannel: make(chan *Client, 1024),
+		registerChannel:   make(chan *Client, 128),
+		unregisterChannel: make(chan *Client, 128),
 	}
+
+	server.rpc.Add(RPCSubscribeHandler{
+		hub: server.hub,
+	})
+
+	server.rpc.Add(RPCUnsubscribeHandler{
+		hub: server.hub,
+	})
 
 	mux := http.NewServeMux()
 

@@ -132,25 +132,28 @@ func (this *Client) readPump(server *Server) {
 			continue
 		}
 
-		switch request.Method {
-		case "subscribe":
-			if len(request.Parameters[0]) < 32 {
-				this.WriteRPCResponseError(request, JSONMap{
-					"msg": "The length of channel name cannot be < 32",
-				})
-				continue
-			}
+		server.rpc.Handle(request)
 
-			server.hub.Subscribe(request.Parameters[0], this)
-
-			this.WriteRPCResponse(request, JSONMap{})
-			break
-		default:
-			this.WriteRPCResponseError(request, JSONMap{
-				"message": "Unsupported method",
-			})
-			break
-		}
+		//
+		//switch request.Method {
+		//case "subscribe":
+		//	if len(request.Parameters[0]) < 32 {
+		//		this.WriteRPCResponseError(request, JSONMap{
+		//			"msg": "The length of channel name cannot be < 32",
+		//		})
+		//		continue
+		//	}
+		//
+		//	server.hub.Subscribe(request.Parameters[0], this)
+		//
+		//	this.WriteRPCResponse(request, JSONMap{})
+		//	break
+		//default:
+		//	this.WriteRPCResponseError(request, JSONMap{
+		//		"message": "Unsupported method",
+		//	})
+		//	break
+		//}
 	}
 }
 
