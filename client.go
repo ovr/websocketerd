@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	rpc "github.com/interpals/websocketerd/rpc"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
@@ -55,8 +54,8 @@ func (this *Client) GetDefaultPubChannel() string {
 	return "pubsub:user:" + strconv.FormatUint(this.user.Id, 10)
 }
 
-func (this *Client) WriteRPCResponseError(request *rpc.RPCRequest, result JSONMap) {
-	response, err := json.Marshal(rpc.RPCResponseError{
+func (this *Client) WriteRPCResponseError(request *RPCRequest, result JSONMap) {
+	response, err := json.Marshal(RPCResponseError{
 		Id:    request.Id,
 		Error: result,
 	})
@@ -68,8 +67,8 @@ func (this *Client) WriteRPCResponseError(request *rpc.RPCRequest, result JSONMa
 	}
 }
 
-func (this *Client) WriteRPCResponse(request *rpc.RPCRequest, result JSONMap) {
-	response, err := json.Marshal(rpc.RPCResponse{
+func (this *Client) WriteRPCResponse(request *RPCRequest, result JSONMap) {
+	response, err := json.Marshal(RPCResponse{
 		Id:     request.Id,
 		Result: result,
 	})
@@ -99,7 +98,7 @@ func (this *Client) readPump(server *Server) {
 	)
 
 	for {
-		request := &rpc.RPCRequest{}
+		request := &RPCRequest{}
 
 		_, r, err := this.conn.NextReader()
 		if err != nil {
@@ -117,7 +116,7 @@ func (this *Client) readPump(server *Server) {
 				break
 			}
 
-			response, err := json.Marshal(rpc.RPCFatalError{
+			response, err := json.Marshal(RPCFatalError{
 				Error: JSONMap{
 					"msg": "Cannot decode RPC request",
 				},
@@ -132,28 +131,7 @@ func (this *Client) readPump(server *Server) {
 			continue
 		}
 
-		server.rpc.Handle(request)
-
-		//
-		//switch request.Method {
-		//case "subscribe":
-		//	if len(request.Parameters[0]) < 32 {
-		//		this.WriteRPCResponseError(request, JSONMap{
-		//			"msg": "The length of channel name cannot be < 32",
-		//		})
-		//		continue
-		//	}
-		//
-		//	server.hub.Subscribe(request.Parameters[0], this)
-		//
-		//	this.WriteRPCResponse(request, JSONMap{})
-		//	break
-		//default:
-		//	this.WriteRPCResponseError(request, JSONMap{
-		//		"message": "Unsupported method",
-		//	})
-		//	break
-		//}
+		server.rpc.Handle(request, this)
 	}
 }
 

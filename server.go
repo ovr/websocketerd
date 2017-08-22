@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
-	rpc "github.com/interpals/websocketerd/rpc"
 	"github.com/jinzhu/gorm"
 	"github.com/newrelic/go-agent"
 	log "github.com/sirupsen/logrus"
@@ -18,7 +17,7 @@ type Server struct {
 
 	httpServer *http.Server
 
-	rpc *rpc.Server
+	rpc *RPCServer
 
 	hub HubInterface
 
@@ -167,7 +166,7 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 				},
 			),
 		),
-		rpc:               rpc.NewServer(),
+		rpc:               NewRPCServer(),
 		db:                db,
 		done:              make(chan bool),
 		shutdownChannel:   make(chan bool),
@@ -178,8 +177,10 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 	server.rpc.Add(RPCSubscribeHandler{
 		hub: server.hub,
 	})
-
 	server.rpc.Add(RPCUnsubscribeHandler{
+		hub: server.hub,
+	})
+	server.rpc.Add(RPCMessageHandler{
 		hub: server.hub,
 	})
 

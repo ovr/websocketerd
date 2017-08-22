@@ -1,4 +1,3 @@
-
 package main
 
 type ClientsMap map[*Client]bool
@@ -13,6 +12,8 @@ type HubInterface interface {
 	Unsubscribe(client *Client)
 
 	Subscribe(channel string, client *Client)
+
+	PublishMessage(channel string, payload string)
 
 	GetClientsCount() int
 

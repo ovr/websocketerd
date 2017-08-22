@@ -1,4 +1,4 @@
-package rpc
+package main
 
 type RPCRequest struct {
 	Id         string   `json:"id"`
