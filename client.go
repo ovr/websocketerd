@@ -84,6 +84,7 @@ func (this *Client) WriteRPCResponse(request *rpc.RPCRequest, result JSONMap) {
 func (this *Client) readPump(server *Server) {
 	defer func() {
 		server.unregisterChannel <- this
+
 		this.conn.Close()
 	}()
 
@@ -100,7 +101,14 @@ func (this *Client) readPump(server *Server) {
 	for {
 		request := &rpc.RPCRequest{}
 
-		err := this.conn.ReadJSON(request)
+		_, r, err := this.conn.NextReader()
+		if err != nil {
+			log.Debugln(err)
+
+			break
+		}
+
+		err = json.NewDecoder(r).Decode(request)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				log.Warnln("Error: %v", err)
@@ -120,6 +128,8 @@ func (this *Client) readPump(server *Server) {
 			} else {
 				log.Warningln(err)
 			}
+
+			continue
 		}
 
 		switch request.Method {
@@ -147,7 +157,7 @@ func (this *Client) readPump(server *Server) {
 func (this *Client) Send(message []byte) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("Recovered in Send", r)
+			log.Println("Recovered in Send:", r)
 		}
 	}()
 
