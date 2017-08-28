@@ -46,7 +46,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 			return
 		}
 	} else {
-		log.Print(err)
+		log.Debugln(err)
 
 		tokenString := r.URL.Query().Get("token")
 		if tokenString == "" {
