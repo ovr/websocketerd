@@ -2,9 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"os"
 )
 
 type RedisConfiguration struct {
@@ -37,13 +36,11 @@ type Configuration struct {
 func (this *Configuration) Init(configFile string) {
 	configJson, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalln(err)
 	}
 
 	err = json.Unmarshal(configJson, &this)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalln(err)
 	}
 }
