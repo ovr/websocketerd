@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
@@ -39,10 +41,10 @@ func authByLT(r *http.Request, db *gorm.DB) *json.Number {
 	return nil
 }
 
-func authByJWT(r *http.Request, jwtSecret string) *json.Number {
+func authByJWT(r *http.Request, jwtSecret string) (*json.Number, error) {
 	tokenString := r.URL.Query().Get("token")
 	if tokenString == "" {
-		return nil
+		return nil, nil
 	}
 
 	parser := &jwt.Parser{
@@ -50,26 +52,23 @@ func authByJWT(r *http.Request, jwtSecret string) *json.Number {
 	}
 
 	token, err := parser.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-
-		//jwt.SigningMethodHS256.Verify()
-		//if _, ok := token.Method.(*jwt.SigningMethodRS256); !ok {
-		//	return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		//}
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
 
 		return []byte(jwtSecret), nil
 	})
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		uid := claims["uid"].(json.Number)
-		return &uid
+		return &uid, nil
 	}
 
-	return nil
+	return nil, errors.New("Unknown claim uid")
 }
 
 func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *http.Request) {
@@ -81,10 +80,14 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		}
 	}()
 
-	userId := authByJWT(r, config.JWTSecret)
-	if userId == nil {
-		// legacy compatibility auth
-		userId = authByLT(r, server.db)
+	userId, err := authByJWT(r, config.JWTSecret)
+	if err == nil {
+		if userId == nil {
+			// legacy compatibility auth
+			userId = authByLT(r, server.db)
+		}
+	} else {
+		log.Debug(err)
 	}
 
 	if userId == nil {
