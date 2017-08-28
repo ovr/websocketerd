@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
+	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -17,6 +18,60 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func authByLT(r *http.Request, db *gorm.DB) *json.Number {
+	lt, err := r.Cookie("lt")
+	if err == nil {
+		autologinToken, err := parseAutoLoginToken(lt.Value)
+		if err != nil {
+			return nil
+		}
+
+		row := LoginToken{}
+		notFound := db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).Find(&row).RecordNotFound()
+
+		if notFound {
+			return nil
+		}
+
+		return &autologinToken.UserId
+	}
+
+	return nil
+}
+
+func authByJWT(r *http.Request, jwtSecret string) *json.Number {
+	tokenString := r.URL.Query().Get("token")
+	if tokenString == "" {
+		return nil
+	}
+
+	parser := &jwt.Parser{
+		UseJSONNumber: true,
+	}
+
+	token, err := parser.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+
+		//jwt.SigningMethodHS256.Verify()
+		//if _, ok := token.Method.(*jwt.SigningMethodRS256); !ok {
+		//	return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		//}
+
+		return []byte(jwtSecret), nil
+	})
+
+	if err != nil {
+		return nil
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		uid := claims["uid"].(json.Number)
+		return &uid
+	}
+
+	return nil
+}
+
 func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -26,67 +81,14 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 		}
 	}()
 
-	var userId json.Number
-
-	lt, err := r.Cookie("lt")
-	if err == nil {
-		autologinToken, err := parseAutoLoginToken(lt.Value)
-		if err != nil {
-			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		userId = autologinToken.UserId
-
-		row := LoginToken{}
-		notFound := server.db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).Find(&row).RecordNotFound()
-
-		if notFound {
-			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
-			return
-		}
-	} else {
-		log.Debugln(err)
-
-		tokenString := r.URL.Query().Get("token")
-		if tokenString == "" {
-			http.Error(w, "StatusUnauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		parser := &jwt.Parser{
-			UseJSONNumber: true,
-		}
-
-		token, err := parser.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// Don't forget to validate the alg is what you expect:
-
-			//jwt.SigningMethodHS256.Verify()
-			//if _, ok := token.Method.(*jwt.SigningMethodRS256); !ok {
-			//	return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			//}
-
-			return []byte(config.JWTSecret), nil
-		})
-
-		if err != nil {
-			http.Error(w, "StatusForbidden", http.StatusForbidden)
-			return
-		}
-
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			userId = claims["jti"].(json.Number)
-		} else {
-			http.Error(w, "StatusForbidden", http.StatusForbidden)
-			return
-		}
+	userId := authByJWT(r, config.JWTSecret)
+	if userId == nil {
+		// legacy compatibility auth
+		userId = authByLT(r, server.db)
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Warningln(err)
-
-		// We don't needed to response, upgrader.returnError will do it automatically
+	if userId == nil {
+		http.Error(w, "StatusForbidden", http.StatusForbidden)
 		return
 	}
 
@@ -94,6 +96,14 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	if server.db.Find(user, userId.String()).RecordNotFound() {
 		http.Error(w, "StatusForbidden", http.StatusForbidden)
+		return
+	}
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Warningln(err)
+
+		// We don't needed to response, upgrader.returnError will do it automatically
 		return
 	}
 
