@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"strings"
 )
 
 type RPCSubscribeHandler struct {
@@ -21,7 +22,17 @@ func (this RPCSubscribeHandler) Parameters() []RPCParameter {
 }
 
 func (this RPCSubscribeHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
-	this.hub.Subscribe(request.Parameters[0], client)
+	channel := request.Parameters[0]
+
+	if strings.Contains(channel, "*") {
+		return nil, errors.New("Pattern * is not allowed")
+	}
+
+	if !strings.Contains(channel, "room:") && !strings.Contains(channel, "user:pub:") {
+		return nil, errors.New("You can subscribe only on room: or user:pub:")
+	}
+
+	this.hub.Subscribe(channel, client)
 
 	return nil, errors.New("Unknown")
 }

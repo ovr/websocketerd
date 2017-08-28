@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"strings"
 )
 
 type RPCMessageHandler struct {
@@ -24,7 +25,17 @@ func (this RPCMessageHandler) Parameters() []RPCParameter {
 }
 
 func (this RPCMessageHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
-	this.hub.PublishMessage(request.Parameters[0], request.Parameters[1])
+	channel := request.Parameters[0]
+
+	if strings.Contains(channel, "*") {
+		return nil, errors.New("Pattern * is not allowed")
+	}
+
+	if !strings.Contains(channel, "room:") {
+		return nil, errors.New("You can message only inside room: channel")
+	}
+
+	this.hub.PublishMessage(channel, request.Parameters[1])
 
 	return nil, errors.New("Unknown")
 }
