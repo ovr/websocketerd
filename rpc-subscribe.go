@@ -34,5 +34,9 @@ func (this RPCSubscribeHandler) Handle(request *RPCRequest, client *Client) (*JS
 
 	this.hub.Subscribe(channel, client)
 
-	return nil, errors.New("Unknown")
+	result := JSONMap{
+		"success": true,
+	}
+
+	return &result, nil
 }

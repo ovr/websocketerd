@@ -37,5 +37,9 @@ func (this RPCMessageHandler) Handle(request *RPCRequest, client *Client) (*JSON
 
 	this.hub.PublishMessage(channel, request.Parameters[1])
 
-	return nil, errors.New("Unknown")
+	result := JSONMap{
+		"success": true,
+	}
+
+	return &result, nil
 }
