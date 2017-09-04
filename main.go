@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+const (
+	SOCKET_MAX_MESSAGE_SIZE_KB = 8 * 1024 // 8KB
+)
+
 func main() {
 	var (
 		configFile string

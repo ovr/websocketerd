@@ -47,7 +47,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 512
+	maxMessageSize = 8 * 1024 // 8KB
 )
 
 func (this *Client) GetDefaultPubChannel() string {

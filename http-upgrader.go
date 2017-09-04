@@ -12,8 +12,8 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  SOCKET_MAX_MESSAGE_SIZE_KB,
+	WriteBufferSize: SOCKET_MAX_MESSAGE_SIZE_KB,
 	CheckOrigin: func(r *http.Request) bool {
 		// @todo check!
 		return true
