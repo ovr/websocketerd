@@ -66,7 +66,7 @@ func (this *RPCServer) Handle(request *RPCRequest, client *Client) {
 				},
 			)
 		} else {
-			client.WriteRPCResponseError(
+			client.WriteRPCResponse(
 				request,
 				*result,
 			)
