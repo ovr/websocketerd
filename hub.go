@@ -11,7 +11,7 @@ type HubInterface interface {
 
 	Unsubscribe(client *Client)
 
-	Subscribe(channel string, client *Client)
+	Subscribe(channel string, client *Client) error
 
 	PublishMessage(channel string, payload string)
 

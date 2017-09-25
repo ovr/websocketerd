@@ -119,35 +119,39 @@ func (this RedisHub) Unsubscribe(client *Client) {
 	}
 }
 
-func (this RedisHub) Subscribe(channel string, client *Client) {
+func (this RedisHub) Subscribe(channel string, client *Client) error {
 	err := this.pubSub.Subscribe(channel)
 	if err != nil {
 		log.Errorln("Redis subscribe to %s err: %s", channel, err)
-	} else {
-		this.channelsToClientsLock.Lock()
 
-		if channelClients, ok := this.channelsToClients[channel]; ok {
-			channelClients[client] = true
-		} else {
-			clients := ClientsMap{}
-			clients[client] = true
-
-			this.channelsToClients[channel] = clients
-		}
-
-		this.channelsToClientsLock.Unlock()
-
-		this.clientsToChannelsLock.Lock()
-
-		if clientChannels, ok := this.clientsToChannels[client]; ok {
-			clientChannels[channel] = true
-		} else {
-			channels := ChannelsMap{}
-			channels[channel] = true
-
-			this.clientsToChannels[client] = channels
-		}
-
-		this.clientsToChannelsLock.Unlock()
+		return err
 	}
+
+	this.channelsToClientsLock.Lock()
+
+	if channelClients, ok := this.channelsToClients[channel]; ok {
+		channelClients[client] = true
+	} else {
+		clients := ClientsMap{}
+		clients[client] = true
+
+		this.channelsToClients[channel] = clients
+	}
+
+	this.channelsToClientsLock.Unlock()
+
+	this.clientsToChannelsLock.Lock()
+
+	if clientChannels, ok := this.clientsToChannels[client]; ok {
+		clientChannels[channel] = true
+	} else {
+		channels := ChannelsMap{}
+		channels[channel] = true
+
+		this.clientsToChannels[client] = channels
+	}
+
+	this.clientsToChannelsLock.Unlock()
+
+	return nil
 }

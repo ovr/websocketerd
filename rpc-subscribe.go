@@ -28,15 +28,18 @@ func (this RPCSubscribeHandler) Handle(request *RPCRequest, client *Client) (*JS
 		return nil, errors.New("Pattern * is not allowed")
 	}
 
-	if !strings.Contains(channel, "room:") && !strings.Contains(channel, "user:pub:") {
-		return nil, errors.New("You can subscribe only on room: or user:pub:")
+	if !strings.Contains(channel, "user:pub:") {
+		return nil, errors.New("You can subscribe only on user:pub:")
 	}
 
-	this.hub.Subscribe(channel, client)
+	err := this.hub.Subscribe(channel, client)
+	if err == nil {
+		result := JSONMap{
+			"success": true,
+		}
 
-	result := JSONMap{
-		"success": true,
+		return &result, nil
 	}
 
-	return &result, nil
+	return nil, errors.New("Cannot subscribe")
 }

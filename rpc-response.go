@@ -13,3 +13,8 @@ type RPCResponseError struct {
 	Id    string  `json:"id"`
 	Error JSONMap `json:"error"`
 }
+
+type SocketMessageWithPayload struct {
+	Type string  `json:"type"`
+	Data JSONMap `json:"data"`
+}
