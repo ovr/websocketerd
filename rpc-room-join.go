@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -27,8 +28,8 @@ func (this RPCRoomJoinHandler) Parameters() []RPCParameter {
 }
 
 func (this RPCRoomJoinHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
-	roomId := request.Parameters[0]
-	from := request.Parameters[1]
+	roomId := request.Parameters[0].(string)
+	from := request.Parameters[1].(string)
 
 	if strings.Contains(roomId, "*") {
 		return nil, errors.New("Pattern * is not allowed")
@@ -50,6 +51,7 @@ func (this RPCRoomJoinHandler) Handle(request *RPCRequest, client *Client) (*JSO
 			panic(marshalError)
 		}
 
+		logrus.Debug(channel)
 		this.hub.PublishMessage(channel, string(roomJoinMessage))
 
 		result := JSONMap{

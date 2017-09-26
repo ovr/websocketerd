@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-type JSONMap map[string]interface{}
+type JSONMap = map[string]interface{}
 
 type AutoLoginToken struct {
 	UserId      json.Number

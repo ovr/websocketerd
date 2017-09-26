@@ -22,7 +22,7 @@ func (this RPCSubscribeHandler) Parameters() []RPCParameter {
 }
 
 func (this RPCSubscribeHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
-	channel := request.Parameters[0]
+	channel := request.Parameters[0].(string)
 
 	if strings.Contains(channel, "*") {
 		return nil, errors.New("Pattern * is not allowed")

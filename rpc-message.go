@@ -25,7 +25,7 @@ func (this RPCMessageHandler) Parameters() []RPCParameter {
 }
 
 func (this RPCMessageHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
-	channel := request.Parameters[0]
+	channel := request.Parameters[0].(string)
 
 	if strings.Contains(channel, "*") {
 		return nil, errors.New("Pattern * is not allowed")
@@ -35,7 +35,7 @@ func (this RPCMessageHandler) Handle(request *RPCRequest, client *Client) (*JSON
 		return nil, errors.New("You can message only inside room: channel")
 	}
 
-	this.hub.PublishMessage(channel, request.Parameters[1])
+	this.hub.PublishMessage(channel, request.Parameters[1].(string))
 
 	result := JSONMap{
 		"success": true,
