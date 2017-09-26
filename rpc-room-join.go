@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -51,7 +51,7 @@ func (this RPCRoomJoinHandler) Handle(request *RPCRequest, client *Client) (*JSO
 			panic(marshalError)
 		}
 
-		logrus.Debug(channel)
+		log.Debug("ROOM_JOIN", channel)
 		this.hub.PublishMessage(channel, string(roomJoinMessage))
 
 		result := JSONMap{

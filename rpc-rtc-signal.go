@@ -7,18 +7,21 @@ import (
 	"strings"
 )
 
-type RPCRTCOfferHandler struct {
+type RPCRTCSignalHandler struct {
 	hub HubInterface
 }
 
-func (this RPCRTCOfferHandler) MethodName() string {
-	return "rtc-offer"
+func (this RPCRTCSignalHandler) MethodName() string {
+	return "rtc-signal"
 }
 
-func (this RPCRTCOfferHandler) Parameters() []RPCParameter {
+func (this RPCRTCSignalHandler) Parameters() []RPCParameter {
 	return []RPCParameter{
 		{
-			Name: "id",
+			Name: "signalType",
+		},
+		{
+			Name: "roomId",
 		},
 		{
 			Name: "from",
@@ -32,11 +35,12 @@ func (this RPCRTCOfferHandler) Parameters() []RPCParameter {
 	}
 }
 
-func (this RPCRTCOfferHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
-	roomId := request.Parameters[0].(string)
-	from := request.Parameters[1].(string)
-	to := request.Parameters[2].(string)
-	payload := request.Parameters[3].(JSONMap)
+func (this RPCRTCSignalHandler) Handle(request *RPCRequest, client *Client) (*JSONMap, error) {
+	signalType := request.Parameters[0].(string)
+	roomId := request.Parameters[1].(string)
+	from := request.Parameters[2].(string)
+	to := request.Parameters[3].(string)
+	payload := request.Parameters[4].(JSONMap)
 
 	if strings.Contains(roomId, "*") {
 		return nil, errors.New("Pattern * is not allowed")
@@ -47,7 +51,7 @@ func (this RPCRTCOfferHandler) Handle(request *RPCRequest, client *Client) (*JSO
 	err := this.hub.Subscribe(channel, client)
 	if err == nil {
 		socketMessage, marshalError := json.Marshal(SocketMessageWithPayload{
-			Type: "RTC_OFFER",
+			Type: signalType,
 			Data: JSONMap{
 				"from":    from,
 				"to":      to,

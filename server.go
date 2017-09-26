@@ -180,13 +180,10 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 	server.rpc.Add(RPCUnsubscribeHandler{
 		hub: server.hub,
 	})
-	server.rpc.Add(RPCMessageHandler{
-		hub: server.hub,
-	})
 	server.rpc.Add(RPCRoomJoinHandler{
 		hub: server.hub,
 	})
-	server.rpc.Add(RPCRTCOfferHandler{
+	server.rpc.Add(RPCRTCSignalHandler{
 		hub: server.hub,
 	})
 
