@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func authByLT(r *http.Request, db *gorm.DB) *uint64 {
+func authByLT(r *http.Request, db *gorm.DB) *string {
 	lt, err := r.Cookie("lt")
 	if err == nil {
 		autologinToken, err := parseAutoLoginToken(lt.Value)
@@ -29,7 +29,7 @@ func authByLT(r *http.Request, db *gorm.DB) *uint64 {
 		}
 
 		row := LoginToken{}
-		notFound := db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, string(autologinToken.UserId)).Find(&row).RecordNotFound()
+		notFound := db.Where("token = UNHEX(?) and user_id = ?", autologinToken.Token, autologinToken.UserId).Find(&row).RecordNotFound()
 
 		if notFound {
 			return nil
@@ -41,7 +41,7 @@ func authByLT(r *http.Request, db *gorm.DB) *uint64 {
 	return nil
 }
 
-func authByJWT(r *http.Request, jwtSecret string) (*uint64, error) {
+func authByJWT(r *http.Request, jwtSecret string) (*string, error) {
 	tokenString := r.URL.Query().Get("token")
 	if tokenString == "" {
 		return nil, nil
@@ -64,7 +64,9 @@ func authByJWT(r *http.Request, jwtSecret string) (*uint64, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		uid, err := strconv.ParseUint(claims["uid"].(string), 10, 64)
+		uid := claims["uid"].(string)
+
+		_, err := strconv.ParseUint(uid, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("Payload->uid must be string with valid uint64 inside")
 		}

@@ -7,7 +7,7 @@ import (
 type JSONMap = map[string]interface{}
 
 type AutoLoginToken struct {
-	UserId      uint64
+	UserId      string
 	Token       string
 	BrowserHash string
 }

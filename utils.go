@@ -21,8 +21,6 @@ func RawUrlDecode(str string) string {
 }
 
 func parseAutoLoginToken(token string) (*AutoLoginToken, error) {
-	var err error
-
 	tokenValue := RawUrlDecode(token)
 
 	parts := strings.Split(tokenValue, ",")
@@ -30,13 +28,13 @@ func parseAutoLoginToken(token string) (*AutoLoginToken, error) {
 		return nil, errors.New("Wrong login token")
 	}
 
-	uid, err := strconv.ParseUint(parts[0], 10, 64)
+	_, err := strconv.ParseUint(parts[0], 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
 	loginToken := &AutoLoginToken{
-		UserId:      uid,
+		UserId:      parts[0],
 		Token:       parts[1],
 		BrowserHash: parts[2],
 	}
