@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
@@ -9,6 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strconv"
 )
 
 var upgrader = websocket.Upgrader{
@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func authByLT(r *http.Request, db *gorm.DB) *json.Number {
+func authByLT(r *http.Request, db *gorm.DB) *uint64 {
 	lt, err := r.Cookie("lt")
 	if err == nil {
 		autologinToken, err := parseAutoLoginToken(lt.Value)
@@ -41,7 +41,7 @@ func authByLT(r *http.Request, db *gorm.DB) *json.Number {
 	return nil
 }
 
-func authByJWT(r *http.Request, jwtSecret string) (*json.Number, error) {
+func authByJWT(r *http.Request, jwtSecret string) (*uint64, error) {
 	tokenString := r.URL.Query().Get("token")
 	if tokenString == "" {
 		return nil, nil
@@ -64,7 +64,11 @@ func authByJWT(r *http.Request, jwtSecret string) (*json.Number, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		uid := claims["uid"].(json.Number)
+		uid, err := strconv.ParseUint(claims["uid"].(string), 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("Payload->uid must be string with valid uint64 inside")
+		}
+
 		return &uid, nil
 	}
 
@@ -97,7 +101,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	var user *User = new(User)
 
-	if server.db.Find(user, userId.String()).RecordNotFound() {
+	if server.db.Find(user, userId).RecordNotFound() {
 		http.Error(w, "StatusForbidden", http.StatusForbidden)
 		return
 	}

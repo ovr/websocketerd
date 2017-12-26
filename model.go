@@ -1,14 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"strconv"
 )
 
 type JSONMap = map[string]interface{}
 
 type AutoLoginToken struct {
-	UserId      json.Number
+	UserId      uint64
 	Token       string
 	BrowserHash string
 }
