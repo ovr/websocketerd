@@ -103,7 +103,7 @@ func serveWs(config *Configuration, server *Server, w http.ResponseWriter, r *ht
 
 	var user *User = new(User)
 
-	if server.db.Find(user, userId).RecordNotFound() {
+	if server.db.Where("id = ?", userId).Find(user).RecordNotFound() {
 		http.Error(w, "StatusForbidden", http.StatusForbidden)
 		return
 	}
