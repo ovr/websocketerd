@@ -1,4 +1,4 @@
-FROM golang:1.9.0
+FROM golang:1.9.2
 
 MAINTAINER Patsura Dmitry <talk@dmtry.me>
 
