@@ -34,10 +34,15 @@ type Server struct {
 
 	// Unregister requests from clients.
 	unregisterChannel chan *Client
+
+	newrelic newrelic.Application
+
+	metricsTicker *time.Ticker
 }
 
 func (this *Server) Run() {
 	go this.hub.Listen()
+	go this.MetricsListener()
 	go this.Listen()
 
 	go func() {
@@ -49,6 +54,8 @@ func (this *Server) Run() {
 }
 
 func (this *Server) Shutdown() {
+	this.metricsTicker.Stop()
+
 	// Don't accept new connections to hub
 	close(this.registerChannel)
 
@@ -56,6 +63,20 @@ func (this *Server) Shutdown() {
 
 	// w8th before shutdown request finish
 	<-this.done
+}
+
+func (this *Server) MetricsListener() {
+	for range this.metricsTicker.C {
+		this.newrelic.RecordCustomMetric(
+			"connections",
+			float64(this.clients.Len()),
+		)
+
+		this.newrelic.RecordCustomMetric(
+			"channels",
+			float64(this.hub.GetChannelsCount()),
+		)
+	}
 }
 
 func (this *Server) Listen() {
@@ -172,6 +193,8 @@ func newServer(config *Configuration, newRelicApp newrelic.Application) *Server 
 		shutdownChannel:   make(chan bool),
 		registerChannel:   make(chan *Client, 128),
 		unregisterChannel: make(chan *Client, 128),
+		newrelic:          newRelicApp,
+		metricsTicker:     time.NewTicker(time.Second * 1),
 	}
 
 	server.rpc.Add(RPCSubscribeHandler{
