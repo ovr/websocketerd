@@ -1,10 +1,10 @@
-hash: 292e21f727aafdb06cd20221a5c0f8f4c682e7f87539285bc62af89c4d308ef1
-updated: 2017-08-21T08:47:45.497407559Z
+hash: a397a3f0aff98d48487aef92d608700652c636dff0a62feadc14daef03970b7b
+updated: 2017-12-27T03:31:44.919149485Z
 imports:
 - name: github.com/dgrijalva/jwt-go
-  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
+  version: dbeaa9332f19a944acb5736b4456cfcc02140e29
 - name: github.com/go-redis/redis
-  version: 19c1c2272e00c1aaa903cf574c746cd449f9cd3c
+  version: 9c885d5ba8a22f260badcffde1649915fbeebfc0
   subpackages:
   - internal
   - internal/consistenthash
@@ -20,15 +20,16 @@ imports:
 - name: github.com/jinzhu/inflection
   version: 1c35d901db3da928c72a72d8458480cc9ade058f
 - name: github.com/newrelic/go-agent
-  version: 29ec3cd1bb2f21d21d36da37dae52695cb2c3a17
+  version: f5bce3387232559bcbe6a5f8227c4bf508dac1ba
   subpackages:
   - internal
+  - internal/cat
   - internal/jsonx
   - internal/logger
   - internal/sysinfo
   - internal/utilization
 - name: github.com/sirupsen/logrus
-  version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
+  version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
 - name: golang.org/x/crypto
   version: eb71ad9bd329b5ac0fd0148dd99bd62e8be8e035
   subpackages:
