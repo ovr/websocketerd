@@ -67,15 +67,23 @@ func (this *Server) Shutdown() {
 
 func (this *Server) MetricsListener() {
 	for range this.metricsTicker.C {
-		this.newrelic.RecordCustomMetric(
+		log.Debugln("Server::MetricsListener")
+
+		err := this.newrelic.RecordCustomMetric(
 			"connections",
 			float64(this.clients.Len()),
 		)
+		if err != nil {
+			log.Warningln(err)
+		}
 
-		this.newrelic.RecordCustomMetric(
+		err = this.newrelic.RecordCustomMetric(
 			"channels",
 			float64(this.hub.GetChannelsCount()),
 		)
+		if err != nil {
+			log.Warningln(err)
+		}
 	}
 }
 

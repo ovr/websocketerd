@@ -66,7 +66,7 @@ func (this RedisHub) GetChannelsCount() int {
 }
 
 func (this RedisHub) Listen() {
-	log.Debugln("listen")
+	log.Debugln("RedisHub::listen")
 
 	for {
 		channel := this.pubSub.Channel()
